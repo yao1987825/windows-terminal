@@ -1,0 +1,34 @@
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS / Temporary
+.DS_Store
+*.tmp
+*.bak
+*.log
+
+# PowerShell
+*.ps1.bak
+
+# Sensitive
+*.env
+*.key
+*.pem
+secrets.*
+config.local.*
+
+# Download packages (not source)
+*.msixbundle
+*.appx
+*.zip
+WTPackage/
+Downloads/
