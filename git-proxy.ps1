@@ -1,18 +1,21 @@
-# git-proxy.ps1 - Git SOCKS5 Proxy Manager
+# git-proxy.ps1 - Git Proxy Manager (HTTP / HTTPS / SOCKS5)
 #
 # Usage:
-#   .\git-proxy.ps1 -h <IP> -p <PORT> -s      Set SOCKS5 proxy (apply immediately)
-#   .\git-proxy.ps1 -u                        Unset proxy
-#   .\git-proxy.ps1 -c                        Show current proxy status
-#   .\git-proxy.ps1 -Help                     Show help
+#   .\git-proxy.ps1 -h <IP> -p <PORT> -t <TYPE> -s      Set proxy (apply immediately)
+#   .\git-proxy.ps1 -u                                    Unset proxy
+#   .\git-proxy.ps1 -c                                    Show current proxy status
+#   .\git-proxy.ps1 -Help                                 Show help
 #
 # Examples:
-#   .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -s
+#   .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -t socks5 -s
+#   .\git-proxy.ps1 -h 127.0.0.1 -p 7890 -t http -s
+#   .\git-proxy.ps1 -h proxy.example.com -p 8080 -t https -s
 #   .\git-proxy.ps1 -u
 
 param(
     [Alias("h")][string]$ProxyHost,
     [Alias("p")][int]$ProxyPort,
+    [Alias("t")][ValidateSet("http","https","socks5")][string]$ProxyType = "socks5",
     [Alias("s")][switch]$Set,
     [Alias("u")][switch]$Unset,
     [Alias("c")][switch]$Check,
@@ -28,33 +31,52 @@ function Write-Err  { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red
 # ========== Help ==========
 function Show-Help {
 @"
-Git SOCKS5 Proxy Manager
+Git Proxy Manager (HTTP / HTTPS / SOCKS5)
 
 Usage:
-    .\git-proxy.ps1 -h <IP> -p <PORT> -s      Set SOCKS5 proxy (apply immediately)
-    .\git-proxy.ps1 -u                        Unset proxy
-    .\git-proxy.ps1 -c                        Show current proxy status
-    .\git-proxy.ps1 -Help                     Show this help
+    .\git-proxy.ps1 -h <IP> -p <PORT> -t <TYPE> -s      Set proxy (apply immediately)
+    .\git-proxy.ps1 -u                                    Unset proxy
+    .\git-proxy.ps1 -c                                    Show current proxy status
+    .\git-proxy.ps1 -Help                                 Show this help
 
 Parameters:
     -h, -ProxyHost    Proxy server IP or hostname (e.g. 127.0.0.1)
     -p, -ProxyPort    Proxy port (e.g. 1080)
+    -t, -ProxyType    Proxy protocol: http | https | socks5 (default: socks5)
     -s, -Set          Apply proxy settings to Git
     -u, -Unset        Unset Git proxy
     -c, -Check        Show current proxy status
     -Help             Show this help
 
+Supported Protocols:
+    socks5    SOCKS5 proxy (recommended, works for both http/https git repos)
+    http      HTTP proxy (e.g. Clash/SSR HTTP port 7890)
+    https     HTTPS proxy (less common)
+
 Examples:
+    # SOCKS5 proxy (default)
     .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -s
-    .\git-proxy.ps1 -h 192.168.1.100 -p 10808 -s
+    .\git-proxy.ps1 -h 127.0.0.1 -p 10808 -t socks5 -s
+
+    # HTTP proxy (Clash default port)
+    .\git-proxy.ps1 -h 127.0.0.1 -p 7890 -t http -s
+
+    # HTTPS proxy
+    .\git-proxy.ps1 -h proxy.example.com -p 8080 -t https -s
+
+    # Unset
     .\git-proxy.ps1 -u
+
+    # Check status
     .\git-proxy.ps1 -c
 
 Notes:
     - Only modifies git config (global ~/.gitconfig), not system env vars
     - Sets both http.proxy and https.proxy
-    - Uses socks5 protocol
     - Apply takes effect immediately
+    - For SOCKS5, the URL prefix is socks5://
+    - For HTTP, the URL prefix is http://
+    - For HTTPS proxy, the URL prefix is https://
 "@
 }
 
@@ -70,7 +92,7 @@ function Test-GitInstalled {
 
 # ========== Set Proxy ==========
 function Set-GitProxyInternal {
-    param([string]$ProxyHost, [int]$ProxyPort)
+    param([string]$ProxyHost, [int]$ProxyPort, [string]$ProxyType)
 
     if (-not $ProxyHost -or -not $ProxyPort) {
         Write-Err "Setting proxy requires -h <IP> and -p <port>"
@@ -92,15 +114,23 @@ function Set-GitProxyInternal {
         exit 1
     }
 
-    $proxyUrl = "socks5://${ProxyHost}:${ProxyPort}"
+    # Validate protocol type
+    $validTypes = @("http","https","socks5")
+    if ($ProxyType -notin $validTypes) {
+        Write-Err "Invalid proxy type: $ProxyType (must be one of: http, https, socks5)"
+        exit 1
+    }
 
-    Write-Info "Setting SOCKS5 proxy: $proxyUrl"
+    $proxyUrl = "${ProxyType}://${ProxyHost}:${ProxyPort}"
+
+    Write-Info "Setting $ProxyType proxy: $proxyUrl"
 
     try {
         git config --global http.proxy  $proxyUrl
         git config --global https.proxy $proxyUrl
         Write-OK "Proxy set successfully (effective immediately)"
         Write-Host ""
+        Write-Host "  Protocol   = $ProxyType" -ForegroundColor Gray
         Write-Host "  http.proxy  = $proxyUrl" -ForegroundColor Gray
         Write-Host "  https.proxy = $proxyUrl" -ForegroundColor Gray
     }
@@ -138,20 +168,25 @@ function Show-GitProxyStatus {
     if ($httpProxy) {
         Write-Info "Testing proxy connectivity..."
         try {
-            if ($httpProxy -match 'socks5://([^:]+):(\d+)') {
-                $testHost = $Matches[1]
-                $testPort = [int]$Matches[2]
+            # Parse proxy URL: protocol://host:port
+            if ($httpProxy -match '^(https?|socks5)://([^:]+):(\d+)$') {
+                $proto  = $Matches[1]
+                $testHost = $Matches[2]
+                $testPort = [int]$Matches[3]
                 $tcp = New-Object System.Net.Sockets.TcpClient
                 $iar = $tcp.BeginConnect($testHost, $testPort, $null, $null)
                 $success = $iar.AsyncWaitHandle.WaitOne(2000, $false)
                 if ($success -and $tcp.Connected) {
-                    Write-OK "Proxy $testHost`:$testPort is reachable"
+                    Write-OK ("Proxy {0}://{1}:{2} is reachable" -f $proto, $testHost, $testPort)
                     $tcp.Close()
                 }
                 else {
-                    Write-Warn "Proxy $testHost`:$testPort is NOT reachable"
+                    Write-Warn ("Proxy {0}://{1}:{2} is NOT reachable" -f $proto, $testHost, $testPort)
                     $tcp.Close()
                 }
+            }
+            else {
+                Write-Warn "Proxy URL format not recognized: $httpProxy"
             }
         }
         catch {
@@ -173,7 +208,7 @@ if ($Help -or (-not $ProxyHost -and -not $Set -and -not $Unset -and -not $Check)
 }
 
 if ($Set) {
-    Set-GitProxyInternal -ProxyHost $ProxyHost -ProxyPort $ProxyPort
+    Set-GitProxyInternal -ProxyHost $ProxyHost -ProxyPort $ProxyPort -ProxyType $ProxyType
 }
 elseif ($Unset) {
     Unset-GitProxyInternal
@@ -182,7 +217,7 @@ elseif ($Check) {
     Show-GitProxyStatus
 }
 elseif ($ProxyHost -or $ProxyPort) {
-    Write-Err "Incomplete arguments: need -h <IP> -p <port> -s"
+    Write-Err "Incomplete arguments: need -h <IP> -p <port> -t <type> -s"
     Show-Help
     exit 1
 }
