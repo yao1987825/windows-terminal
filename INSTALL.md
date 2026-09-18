@@ -2526,3 +2526,150 @@ param(
 ---
 
 **推送到 GitHub**: https://github.com/yao1987825/git-proxy/blob/main/windows/git-proxy.ps1
+
+
+---
+
+# HTTP 代理无法推送 HTTPS 仓库的问题
+
+> git-proxy -Test 都通过,但 git push 报 CONNECT tunnel failed, response 400。
+
+---
+
+## 一、症状
+
+`powershell
+PS> git-proxy -Test
+[OK]  [REACHABLE]  http://18.163.99.118:80
+[OK]  [HTTP OK]    github.com reachable via proxy
+
+PS> git push -u origin main
+fatal: unable to access 'https://github.com/...':
+  CONNECT tunnel failed, response 400
+`
+
+git-proxy -Test 明明通过了!但 git push 还是失败。
+
+---
+
+## 二、根因
+
+git-proxy -Test 只测了代理的 **HTTP 转发能力**,没测 **HTTPS CONNECT 隧道能力**。
+
+Git 推送 HTTPS 仓库时发的是:
+`
+CONNECT github.com:443 HTTP/1.1
+`
+
+代理如果只支持 HTTP 转发(普通 HTTP GET/POST),**不支持 HTTPS 隧道**,就会返回 400 Bad Request。
+
+### 你这个代理的具体表现
+
+`ash
+$ curl -v -x "http://18.163.99.118:80" "https://github.com"
+> CONNECT github.com:443 HTTP/1.1
+> Host: github.com:443
+>
+< HTTP/1.1 400 Bad Request     ← 代理拒绝建隧道
+< Server: nginx/1.22.0
+`
+
+---
+
+## 三、解决方案
+
+### 方案 1(最推荐):换 SOCKS5 代理
+
+SOCKS5 协议支持任何 TCP 流量,不存在 HTTPS 隧道问题。
+
+`powershell
+git-proxy -u
+git-proxy -h 127.0.0.1 -p 1080 -s        # 本地 SOCKS5
+# 或者
+git-proxy -h 你的SOCKS5服务器 -p 1080 -s
+`
+
+常见的 SOCKS5 来源:
+- Clash Verge / Clash for Windows: 127.0.0.1:7891
+- V2RayN: 127.0.0.1:10808
+- SSH 动态转发: ssh -D 1080 user@server 后用 127.0.0.1:1080
+
+### 方案 2:用新增的 -HttpOnly 选项(仅 HTTP)
+
+如果你的代理只支持 HTTP,**且你只用 HTTP 协议的 git 仓库**(大部分 GitHub 仓库是 HTTPS,这条路基本走不通):
+
+`powershell
+git-proxy -u
+git-proxy -h 18.163.99.118 -p 80 -T http -HttpOnly -s
+#                                       ^^^^^^^^
+#                                       只设 http.proxy, 不设 https.proxy
+`
+
+效果:
+`
+http.proxy  = http://18.163.99.118:80
+https.proxy = (空)
+`
+
+**但实际效果有限**:GitHub/GitLab 都强制 HTTPS,这个选项只是绕开 https.proxy 设置,实际 push 时还是会尝试 HTTPS → 还是会失败。
+
+### 方案 3:换能支持 HTTPS 的 HTTP 代理
+
+有些代理(比如 Squid 配置好的、Caddy reverse_proxy、nginx stream)支持 HTTPS CONNECT。要看你的 18.163.99.118:80 后端是什么。
+
+---
+
+## 四、改进版 -Test(更严格的检测)
+
+v2.1 改进了 -Test,会真正测试 HTTPS CONNECT:
+
+`
+PS> git-proxy -Test
+[INFO]  Testing current Git proxy connectivity...
+
+  Testing http.proxy = http://18.163.99.118:80 ...
+[OK]    [REACHABLE]  http://18.163.99.118:80
+[OK]    [HTTP OK]    github.com reachable via proxy   ← 普通 HTTP OK
+
+  Testing https.proxy = http://18.163.99.118:80 ...
+[OK]    [REACHABLE]  http://18.163.99.118:80
+[WARN]  [HTTPS FAIL] github.com NOT reachable via HTTPS tunnel  ← 真问题在这
+[WARN]  Proxy is HTTP-only, won't work for HTTPS git repos
+[WARN]  Use SOCKS5 proxy instead, or add -HttpOnly flag
+`
+
+如果你看到 [HTTPS FAIL],就是这个问题,必须换 SOCKS5 代理。
+
+---
+
+## 五、相关 git 命令
+
+`ash
+# 查看当前 git 代理
+git config --global --get http.proxy
+git config --global --get https.proxy
+
+# 测试不通过代理能不能连 github
+git -c http.proxy= -c https.proxy= clone https://github.com/octocat/Hello-World.git /tmp/test
+
+# 测试只通过 http.proxy(不走 https.proxy)
+git -c https.proxy= clone https://github.com/octocat/Hello-World.git /tmp/test
+`
+
+---
+
+## 六、教训
+
+| # | 教训 |
+|---|------|
+| 1 | HTTP 代理 ≠ HTTPS 代理。HTTP 转发和 HTTPS 隧道是两码事 |
+| 2 | 国内很多 HTTP 代理(尤其是 CDN 加速的)只支持 HTTP 转发 |
+| 3 | git-proxy -Test 在 v2.0 只测了 HTTP,被这个 case 打了脸 |
+| 4 | 一劳永逸:**用 SOCKS5 代理** |
+| 5 | 如果只有 HTTP 代理,-HttpOnly 是 workaround,不是 solution |
+
+---
+
+**相关代码**: git-proxy.ps1 v2.1(已加 -HttpOnly 参数 + 改进的 -Test 测 HTTPS)
+
+**GitHub**: https://github.com/yao1987825/windows-terminal
