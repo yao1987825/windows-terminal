@@ -28,6 +28,7 @@ param(
     [Alias("s")][switch]$Set,
     [Alias("u")][switch]$Unset,
     [Alias("c")][switch]$Check,
+    [switch]$HttpOnly,
     [switch]$Help
 )
 
@@ -57,8 +58,9 @@ Parameters:
     -Test               Test current proxy connectivity (no other args needed)
     -s, -Set           Apply proxy settings to Git
     -u, -Unset         Unset Git proxy
-    -c, -Check         Show current proxy status
-    -Help              Show this help
+    -c, -Check        Show current proxy status
+    -HttpOnly         Only set http.proxy, NOT https.proxy (for HTTP-only proxies)
+    -Help             Show this help
 
 Supported Protocols:
     socks5    SOCKS5 proxy (recommended)
@@ -175,7 +177,12 @@ function Test-CurrentProxy {
 
 # ========== Set Proxy ==========
 function Set-GitProxyInternal {
-    param([string]$ProxyHost, [int]$ProxyPort, [string]$ProxyType)
+    param(
+        [string]$ProxyHost,
+        [int]$ProxyPort,
+        [string]$ProxyType,
+        [bool]$HttpOnly = $false
+    )
 
     if (-not $ProxyHost -or -not $ProxyPort) {
         Write-Err "Setting proxy requires -h <IP> and -p <port>"
@@ -209,7 +216,15 @@ function Set-GitProxyInternal {
 
     try {
         git config --global http.proxy  $proxyUrl
-        git config --global https.proxy $proxyUrl
+        if ($HttpOnly) {
+            # 仅设 http.proxy, https.proxy 保持不变
+            # 用于 HTTP 代理不支持 HTTPS CONNECT 隧道的场景
+            Write-Host ""
+            Write-Host "  [HttpOnly mode] https.proxy NOT set (HTTP proxy may not support HTTPS tunnel)" -ForegroundColor Yellow
+        }
+        else {
+            git config --global https.proxy $proxyUrl
+        }
         Write-OK "Proxy set successfully (effective immediately)"
         Write-Host ""
         Write-Host "  Protocol    = $ProxyType" -ForegroundColor Gray
@@ -267,7 +282,7 @@ if ($TestProxy) {
     Test-CurrentProxy
 }
 elseif ($Set) {
-    Set-GitProxyInternal -ProxyHost $ProxyHost -ProxyPort $ProxyPort -ProxyType $ProxyType
+    Set-GitProxyInternal -ProxyHost $ProxyHost -ProxyPort $ProxyPort -ProxyType $ProxyType -HttpOnly $HttpOnly.IsPresent
 }
 elseif ($Unset) {
     Unset-GitProxyInternal
