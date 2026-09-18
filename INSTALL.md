@@ -1277,3 +1277,387 @@ git-proxy -u                              # 撤销
 ---
 
 **当前状态**:✅ 已配置方式 1 + 已创建 D:\Windows_Terminal\git-proxy.cmd 包装器
+
+
+---
+
+# SSH 密钥登录完整指南
+
+> Windows Terminal 中配置 SSH 公私钥登录,免密码连服务器,顺便讲讲排查"明明传了公钥还是要密码"的常见坑。
+
+---
+
+## 一、为什么用密钥登录
+
+- 比密码安全(密码可能被爆破,密钥几乎不可能)
+- 不用每次敲密码
+- 可以配多个服务器共用一把密钥
+- 配合 ssh-agent 连 GitHub / GitLab 都免密
+
+---
+
+## 二、生成密钥对
+
+### 现代推荐:ED25519
+
+`powershell
+ssh-keygen -t ed25519 -f "C:\Users\Administrator\.ssh\id_ed25519" -C "your_email@example.com"
+`
+
+- 算法新、密钥短(~68 字节)、速度快、安全性高
+- OpenSSH 6.5+ 都支持(2014 年起,所有现代服务器都行)
+
+### 兼容老服务器:RSA 4096
+
+`powershell
+ssh-keygen -t rsa -b 4096 -f "C:\Users\Administrator\.ssh\id_rsa" -C "your_email@example.com"
+`
+
+### 交互过程
+
+`
+Enter passphrase (empty for no passphrase):  # 强烈建议设密码,防私钥泄露
+Enter same passphrase again:
+Your identification has been saved in C:\Users\xxx\.ssh\id_ed25519
+Your public key has been saved in C:\Users\xxx\.ssh\id_ed25519.pub
+`
+
+### 私钥安全建议
+
+`powershell
+# Windows 上,私钥权限默认就只有当前用户能读,问题不大
+# 但如果用过 Git Bash,可能权限被改坏,需要修复
+icacls "C:\Users\Administrator\.ssh\id_ed25519" /inheritance:r /grant:r ""
+`
+
+---
+
+## 三、把公钥传到服务器
+
+### 方法 1:手动复制(最稳)
+
+`powershell
+# 1. 复制公钥内容
+Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
+# 输出:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your_email@example.com
+`
+
+然后在服务器上:
+
+`ash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..." >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+`
+
+### 方法 2:用 ssh-copy-id(Linux/Mac 才有)
+
+`ash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub yao@10.10.10.186
+`
+
+> Windows 没有 ssh-copy-id。可以从 Git Bash 调用,或用方法 1。
+
+### 方法 3:用 PowerShell 自动传(需先能密码登录一次)
+
+`powershell
+# 把公钥内容作为密码传入(不安全但方便)
+ = Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
+ssh yao@10.10.10.186 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+`
+
+---
+
+## 四、配置 ~/.ssh/config(强烈推荐)
+
+把常用服务器写进配置,以后一行命令连:
+
+`powershell
+notepad C:\Users\Administrator\.ssh\config
+`
+
+示例内容:
+
+`
+# GitHub
+Host github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+
+# 工作服务器
+Host work
+    HostName 10.10.10.186
+    User yao
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+# 跳板机
+Host jump
+    HostName jump.example.com
+    User myuser
+    Port 2222
+    IdentityFile ~/.ssh/id_ed25519
+    ProxyCommand none
+
+# 全局配置(所有连接生效)
+Host *
+    AddKeysToAgent yes
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+`
+
+之后:
+
+`powershell
+ssh work                   # 直接连,不用输 yao@10.10.10.186
+ssh work "ls -la"          # 直接跑命令
+scp file.txt work:~/       # 直接 scp
+`
+
+Windows 上记得给 config 文件设权限,避免 ssh 警告:
+
+`powershell
+icacls "C:\Users\Administrator\.ssh\config" /inheritance:r /grant:r ""
+`
+
+---
+
+## 五、测试密钥登录
+
+`powershell
+# 详细日志模式(第一次调试用)
+ssh -v work
+
+# 关键看这两行:
+# debug1: Offering public key: ED25519 SHA256:xxxxx
+# debug1: Authentication succeeded (publickey).   ← 成功
+# debug1: Permission denied (publickey,password). ← 失败,见下文排查
+`
+
+确认成功:
+
+`powershell
+ssh work "echo 'OK, key login works without password'"
+`
+
+---
+
+## 六、密钥登录失败的排查清单
+
+### 症状:Permission denied (publickey,password) 或继续要求密码
+
+按这个顺序排查:
+
+#### 1. 服务器端 authorized_keys 内容是否正确
+
+`ash
+# 在服务器上
+cat ~/.ssh/authorized_keys
+`
+
+必须是**一整行**,内容跟 id_ed25519.pub 完全一致:
+
+`
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILxSE/jWjOFjtePtlne17BTbNPJ0wYCIAfSxy7G/bBJs Administrator@DESKTOP-SPOC18S
+`
+
+常见错误:
+- 复制时多/少了空格
+- Windows 换行符 \r\n 被复制进去了(在 Linux 上 \r 也会被读成公钥一部分)
+- 公钥末尾的注释邮箱被截断
+- **粘贴时多了一行**(每行一个公钥,顺序无所谓)
+
+**重新生成的命令(在服务器上)**:
+
+`ash
+yao@server:~$ nano ~/.ssh/authorized_keys
+# 清空,粘贴完整一行,Ctrl+O 保存,Ctrl+X 退出
+`
+
+> 现在你装了 nano,可以用了。
+
+#### 3. 权限问题(90% 的坑在这里)
+
+服务端 SSH daemon **极其挑剔**文件权限:
+
+`ash
+yao@server:~$ ls -la ~/.ssh/
+# 必须严格:
+# drwx------ (700)  .ssh
+# -rw------- (600)  authorized_keys
+# -rw------- (600)  id_ed25519  (如果是私钥在服务器)
+
+yao@server:~$ chmod 700 ~/.ssh
+yao@server:~$ chmod 600 ~/.ssh/authorized_keys
+yao@server:~$ chown yao:yao ~/.ssh -R
+`
+
+#### 4. sshd_config 是否允许公钥认证
+
+`ash
+yao@server:~$ sudo grep -E "^(PubkeyAuthentication|PermitRootLogin|AuthorizedKeysFile)" /etc/ssh/sshd_config
+`
+
+输出应该是:
+
+`
+PubkeyAuthentication yes
+PermitRootLogin prohibit-password  # 或 yes
+AuthorizedKeysFile .ssh/authorized_keys
+`
+
+如果 PubkeyAuthentication 是 
+o,改回来:
+
+`ash
+yao@server:~$ sudo sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+yao@server:~$ sudo systemctl restart sshd
+`
+
+#### 5. 客户端用的是哪个密钥
+
+`powershell
+# 看 SSH 实际尝试的密钥
+ssh -v work 2>&1 | Select-String "Offering public key"
+`
+
+如果没看到,可能是 config 文件 IdentityFile 写错了路径。
+
+#### 6. 服务器日志(终极排查)
+
+`ash
+# 服务器上
+yao@server:~$ sudo tail -f /var/log/auth.log    # Debian/Ubuntu
+yao@server:~$ sudo tail -f /var/log/secure      # CentOS/RHEL
+`
+
+然后在客户端尝试连接,日志会显示具体拒绝原因,比如:
+
+`
+Authentication refused: bad ownership or modes for file /home/yao/.ssh/authorized_keys
+`
+
+---
+
+## 七、ssh-agent:免输密钥密码
+
+如果私钥设了 passphrase(强推),可以配置 ssh-agent 缓存,免每次输入:
+
+`powershell
+# 启动 ssh-agent 服务(Windows 自带)
+Set-Service ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+
+# 添加私钥(只需做一次,会问一次 passphrase)
+ssh-add C:\Users\Administrator\.ssh\id_ed25519
+
+# 之后 ssh work 都不用输密码了
+`
+
+---
+
+## 八、文件传输配合密钥
+
+之前装的 scp / sftp 会自动用 ~/.ssh/config 里的密钥,直接免密:
+
+`powershell
+# 上传文件
+scp test.txt work:~/test.txt
+
+# 下载
+scp work:~/data.csv .
+
+# 整个目录
+scp -r myproject/ work:~/myproject/
+
+# 交互式 SFTP
+sftp work
+`
+
+---
+
+## 九、多服务器管理实践
+
+### 一把密钥走天下
+
+`
+~/.ssh/
+├── id_ed25519           # 私钥
+├── id_ed25519.pub       # 公钥,放到所有服务器
+├── config               # 服务器清单
+└── known_hosts          # 已信任服务器指纹
+`
+
+把公钥加到所有服务器:
+
+`ash
+# 同一公钥,推到多个服务器
+for host in server1 server2 server3; do
+    ssh-copy-id -i ~/.ssh/id_ed25519.pub yao@System.Management.Automation.Internal.Host.InternalHost
+done
+`
+
+### 不同服务器用不同密钥(更安全)
+
+`
+~/.ssh/
+├── id_ed25519_work
+├── id_ed25519_personal
+├── id_ed25519_github
+`
+
+config 文件分别指定:
+
+`
+Host github.com
+    IdentityFile ~/.ssh/id_ed25519_github
+
+Host work
+    IdentityFile ~/.ssh/id_ed25519_work
+`
+
+---
+
+## 十、速查表
+
+`powershell
+# 生成密钥
+ssh-keygen -t ed25519 -f "C:\Users\Administrator\.ssh\id_ed25519" -C "备注"
+
+# 显示公钥
+Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
+
+# 添加到 ssh-agent(免输 passphrase)
+ssh-add C:\Users\Administrator\.ssh\id_ed25519
+
+# 测试连接
+ssh -v work
+
+# 传文件
+scp file.txt work:~/
+sftp work
+
+# 编辑 config
+code "C:\Users\Administrator\.ssh\config"
+`
+
+---
+
+## 十一、常见错误速查
+
+| 错误 | 原因 | 解决 |
+|------|------|------|
+| Permission denied (publickey) | 公钥认证失败 | 检查 uthorized_keys 内容、权限 |
+| 提示 Bad owner or permissions on ~/.ssh/config | Windows 上权限过宽 | icacls config /inheritance:r /grant:r "" |
+| Too many authentication failures | 配置了多个 IdentityFile | 在 config 用 -o IdentitiesOnly=yes |
+| sign_and_send_pubkey: signing failed | ssh-agent 没启或没加私钥 | ssh-add 一下 |
+| Host key verification failed | 服务器重装过/密钥变了 | ssh-keygen -R work 删旧指纹再连 |
+| Connection timed out | 防火墙/网络问题 | Test-NetConnection work -Port 22 |
+| 复制公钥时多了一行,导致第二行内容被当成密码 | 复制粘贴问题 | 用 nano 编辑确认只有一行 |
+
+---
+
+**适用**:OpenSSH 7.7+ (Windows 10 1809 自带)
