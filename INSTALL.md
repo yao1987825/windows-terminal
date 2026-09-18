@@ -1871,3 +1871,151 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin git-proxy -t
 ---
 
 **适用**:Debian 11+ / Ubuntu 20.04+ / 其他使用 systemd 的现代 Linux 发行版
+
+
+---
+
+# PowerShell SSH 转义导致 .bashrc 被写坏的坑
+
+> 实体 terminal 里 git-proxy 报"找不到命令"的真正原因。
+
+---
+
+## 一、症状
+
+实体登录 SSH 后:
+
+`ash
+yao@debian:~$ git-proxy -t
+bash: git-proxy -t : 找不到这个命令
+`
+
+明明脚本在 ~/bin/git-proxy,而且 ~/bin/git-proxy --help 直接调用能用。
+
+---
+
+## 二、根本原因
+
+之前用 PowerShell 通过 SSH 远程写入 PATH 配置时,**字符串转义出错**:
+
+`powershell
+# 本意是写入
+export PATH=\C:\Users\Administrator/bin:\
+
+# PowerShell 转义后变成
+export PATH=\C:\Users\Administrator/bin:\
+
+# 落到 Linux .bashrc 里就变成了 Windows 路径!
+`
+
+最终 .bashrc 里被写入了**两行**垃圾:
+
+`
+export PATH=\C:\Users\Administrator/bin:\
+export PATH=\C:\Users\Administrator/bin:\
+`
+
+这两行 PATH 在 Linux 下**完全无效**(Windows 路径),而且因为 \ 被吞掉,还把后面真正的 PATH 给截断了。
+
+---
+
+## 三、排查过程
+
+### 1. 看 PATH 里有什么
+
+`ash
+yao@debian:~$ echo \
+# 奇怪的输出里能看到 C:\Users\Administrator/bin 字样
+`
+
+### 2. 看 .bashrc 末尾
+
+`ash
+yao@debian:~$ tail -10 ~/.bashrc
+
+# 找到了!
+export PATH=\C:\Users\Administrator/bin:\
+export PATH=\C:\Users\Administrator/bin:\
+`
+
+---
+
+## 四、修复
+
+`ash
+# 1. 备份(防手抖)
+cp ~/.bashrc ~/.bashrc.bak
+cp ~/.profile ~/.profile.bak
+
+# 2. 删除包含 Administrator 的行
+grep -v 'Administrator' ~/.bashrc > /tmp/bashrc.new
+mv /tmp/bashrc.new ~/.bashrc
+
+# 3. 用 **双引号** 写入正确 PATH(单引号会让 \C:\Users\Administrator 字面化)
+echo 'export PATH="C:\Users\Administrator/bin:"' >> ~/.bashrc
+echo 'export PATH="C:\Users\Administrator/bin:"' >> ~/.profile
+
+# 4. 验证
+tail -5 ~/.bashrc
+# 应该看到:
+# export PATH="C:\Users\Administrator/bin:"
+
+# 5. 立即生效(无需重新登录)
+source ~/.bashrc
+
+# 6. 测试
+git-proxy -t
+`
+
+或者用一键修复脚本(已上传 ix-bashrc.sh):
+
+`ash
+scp fix-bashrc.sh yao@server:/tmp/
+ssh yao@server "bash /tmp/fix-bashrc.sh"
+`
+
+---
+
+## 五、教训(对自动化运维很重要)
+
+| # | 教训 |
+|---|------|
+| 1 | **PowerShell → SSH → bash** 这条链路上的字符串转义**极其容易出错** |
+| 2 | \C:\Users\Administrator 在 PowerShell 里会被转义,在 bash 里如果用单引号又不会展开,**永远是坑** |
+| 3 | 写入 .bashrc 这种关键配置文件,**一定要先备份** |
+| 4 | 远程修改后**立即验证**(用 	ail -5 看实际内容),别等用户报"命令找不到"才发现 |
+| 5 | 用**文件上传**而不是 echo ... >> 远程拼接字符串,避免所有转义问题 |
+
+### 正确的远程写入姿势
+
+`powershell
+# ❌ 错误:会被转义搞坏
+ssh user@server "echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc"
+
+# ✅ 正确:上传脚本文件,在服务器上执行
+scp fix-script.sh user@server:/tmp/
+ssh user@server "bash /tmp/fix-script.sh"
+
+# ✅ 或者:用 here-string 在 PowerShell 里构造,SSH 传 stdin
+ = @'
+export PATH="C:\Users\Administrator/bin:"
+'@
+ | ssh user@server "cat >> ~/.bashrc"
+`
+
+### 更安全的做法:在脚本顶部检查 PATH
+
+如果 git-proxy 脚本自己能保证 PATH,就不需要依赖 .bashrc:
+
+`ash
+# git-proxy-debian.sh 头部已经做了:
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\"
+
+# 所以即使 .bashrc 写坏了,git-proxy 也能用(但前提是 ~/bin/git-proxy 存在)
+`
+
+---
+
+**相关文件**: ix-bashrc.sh(一键修复工具)
+
+**推送到 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/INSTALL.md
