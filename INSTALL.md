@@ -1,47 +1,39 @@
-# Windows Terminal 安装文档
+# Windows Terminal 瀹夎鏂囨。
 
-> 记录 Windows Terminal 的完整安装过程、踩坑记录及最终解决方案，方便以后参考。
-
+> 璁板綍 Windows Terminal 鐨勫畬鏁村畨瑁呰繃绋嬨€佽俯鍧戣褰曞強鏈€缁堣В鍐虫柟妗堬紝鏂逛究浠ュ悗鍙傝€冦€?
 ---
 
-## 一、环境信息
-
-| 项目 | 值 |
+## 涓€銆佺幆澧冧俊鎭?
+| 椤圭洰 | 鍊?|
 |------|-----|
-| 操作系统 | Windows 10 Pro |
-| 版本 | 2004 |
+| 鎿嶄綔绯荤粺 | Windows 10 Pro |
+| 鐗堟湰 | 2004 |
 | OS Build | 19041 |
-| 架构 | x64 |
-| 当前用户 | `desktop-spoc18s\administrator` |
-| 包管理器 | Chocolatey 2.6.0（已安装） |
-| winget | ❌ 不可用 |
-| scoop | ❌ 不可用 |
+| 鏋舵瀯 | x64 |
+| 褰撳墠鐢ㄦ埛 | `desktop-spoc18s\administrator` |
+| 鍖呯鐞嗗櫒 | Chocolatey 2.6.0锛堝凡瀹夎锛?|
+| winget | 鉂?涓嶅彲鐢?|
+| scoop | 鉂?涓嶅彲鐢?|
 
 ---
 
-## 二、目标
-
-安装 **Windows Terminal v1.24.11911.0**，并保证：
-1. `wt.exe` 命令可用
-2. App Execution Alias 注册成功（`C:\Users\<user>\AppData\Local\Microsoft\WindowsApps\wt.exe` 存在）
-3. 所有依赖框架正确安装，无运行时报错
+## 浜屻€佺洰鏍?
+瀹夎 **Windows Terminal v1.24.11911.0**锛屽苟淇濊瘉锛?1. `wt.exe` 鍛戒护鍙敤
+2. App Execution Alias 娉ㄥ唽鎴愬姛锛坄C:\Users\<user>\AppData\Local\Microsoft\WindowsApps\wt.exe` 瀛樺湪锛?3. 鎵€鏈変緷璧栨鏋舵纭畨瑁咃紝鏃犺繍琛屾椂鎶ラ敊
 
 ---
 
-## 三、安装过程
-
-### 方案 A：Chocolatey 安装（首次尝试）❌
-
-#### 3.1 命令
+## 涓夈€佸畨瑁呰繃绋?
+### 鏂规 A锛欳hocolatey 瀹夎锛堥娆″皾璇曪級鉂?
+#### 3.1 鍛戒护
 
 ```powershell
 choco install microsoft-windows-terminal -y --no-progress
 ```
 
-#### 3.2 安装结果
+#### 3.2 瀹夎缁撴灉
 
-Chocolatey 报告 `8/8 packages` 安装成功：
-
+Chocolatey 鎶ュ憡 `8/8 packages` 瀹夎鎴愬姛锛?
 ```
 Installed:
  - chocolatey-windowsupdate.extension v1.0.5
@@ -54,7 +46,7 @@ Installed:
  - vcredist140 v14.51.36247
 ```
 
-#### 3.3 验证 — 包已注册
+#### 3.3 楠岃瘉 鈥?鍖呭凡娉ㄥ唽
 
 ```powershell
 Get-AppxPackage -Name Microsoft.WindowsTerminal
@@ -63,9 +55,9 @@ Get-AppxPackage -Name Microsoft.WindowsTerminal
 # Microsoft.WindowsTerminal 1.24.11911.0     Ok C:\Program Files\WindowsApps\...
 ```
 
-✅ 包状态显示 `Ok`，安装位置：`C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\`
+鉁?鍖呯姸鎬佹樉绀?`Ok`锛屽畨瑁呬綅缃細`C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\`
 
-#### 3.4 验证 — `wt` 命令 ❌ 失败
+#### 3.4 楠岃瘉 鈥?`wt` 鍛戒护 鉂?澶辫触
 
 ```powershell
 Get-Command wt
@@ -75,74 +67,60 @@ where.exe wt
 # INFO: Could not find files for the given pattern(s).
 ```
 
-**App Execution Alias 没有创建**：
-
+**App Execution Alias 娌℃湁鍒涘缓**锛?
 ```powershell
 Get-ChildItem "C:\Users\$env:USERNAME\AppData\Local\Microsoft\WindowsApps"
-# (目录为空)
+# (鐩綍涓虹┖)
 ```
 
-#### 3.5 尝试重注册包 ❌ 报错
+#### 3.5 灏濊瘯閲嶆敞鍐屽寘 鉂?鎶ラ敊
 
 ```powershell
 $manifest = Get-ChildItem "C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\AppxManifest.xml"
 Add-AppxPackage -DisableDevelopmentMode -Register $manifest.FullName
 ```
 
-**完整错误信息**：
-
+**瀹屾暣閿欒淇℃伅**锛?
 ```
-Add-AppxPackage : 安装失败，原因: HRESULT: 0x80073CF3，无法执行更新。
-Windows 无法安装程序包 Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe，
-因为此程序包依赖于一个找不到的框架。
-需要安装此程序的一个提供
-CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
-名称为 Microsoft.UI.Xaml.2.8 的框架
-(内部版本 x64 处理器体系结构上的版本为 8.2305.5001.0)，
-当前已安装名称为 "Microsoft.UI.Xaml.2.8" 的框架为: {}
+Add-AppxPackage : 瀹夎澶辫触锛屽師鍥? HRESULT: 0x80073CF3锛屾棤娉曟墽琛屾洿鏂般€?Windows 鏃犳硶瀹夎绋嬪簭鍖?Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe锛?鍥犱负姝ょ▼搴忓寘渚濊禆浜庝竴涓壘涓嶅埌鐨勬鏋躲€?闇€瑕佸畨瑁呮绋嬪簭鐨勪竴涓彁渚?CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
+鍚嶇О涓?Microsoft.UI.Xaml.2.8 鐨勬鏋?(鍐呴儴鐗堟湰 x64 澶勭悊鍣ㄤ綋绯荤粨鏋勪笂鐨勭増鏈负 8.2305.5001.0)锛?褰撳墠宸插畨瑁呭悕绉颁负 "Microsoft.UI.Xaml.2.8" 鐨勬鏋朵负: {}
 ```
 
-#### 3.6 根本原因
+#### 3.6 鏍规湰鍘熷洜
 
-Chocolatey 安装的 MSIX 包**没有自带框架依赖**（只有运行时不打包 Framework Package 的 MSIX 包）。系统已安装的 WinUI 框架版本太旧：
-
-| 包 | 已安装版本 | 所需版本 |
+Chocolatey 瀹夎鐨?MSIX 鍖?*娌℃湁鑷甫妗嗘灦渚濊禆**锛堝彧鏈夎繍琛屾椂涓嶆墦鍖?Framework Package 鐨?MSIX 鍖咃級銆傜郴缁熷凡瀹夎鐨?WinUI 妗嗘灦鐗堟湰澶棫锛?
+| 鍖?| 宸插畨瑁呯増鏈?| 鎵€闇€鐗堟湰 |
 |---|---|---|
-| `Microsoft.UI.Xaml.2.0` | 2.1810.18004.0 | — |
-| `Microsoft.UI.Xaml.2.8` | ❌ 未安装 | **8.2305.5001.0**（或更高） |
+| `Microsoft.UI.Xaml.2.0` | 2.1810.18004.0 | 鈥?|
+| `Microsoft.UI.Xaml.2.8` | 鉂?鏈畨瑁?| **8.2305.5001.0**锛堟垨鏇撮珮锛?|
 
-> Windows Terminal v1.24 需要 **WinUI 2.8**（基于 Windows App SDK 1.5+），而 Chocolatey 包未捆绑该框架。
-
-#### 3.7 尝试直接启动 ❌ 失败
+> Windows Terminal v1.24 闇€瑕?**WinUI 2.8**锛堝熀浜?Windows App SDK 1.5+锛夛紝鑰?Chocolatey 鍖呮湭鎹嗙粦璇ユ鏋躲€?
+#### 3.7 灏濊瘯鐩存帴鍚姩 鉂?澶辫触
 
 ```powershell
 Start-Process "wt.exe"
-# Start-Process : 正在尝试执行创建无法运行进程: 拒绝访问。
-```
+# Start-Process : 姝ｅ湪灏濊瘯鎵ц鍒涘缓鏃犳硶杩愯杩涚▼: 鎷掔粷璁块棶銆?```
 
 ```
 & "C:\Program Files\WindowsApps\...\wt.exe" --version
-# 拒绝访问。
-```
+# 鎷掔粷璁块棶銆?```
 
-报错原因：`C:\Program Files\WindowsApps\` 目录默认只允许 TrustedInstaller / SYSTEM 访问，普通管理员进程无法直接执行其下的 EXE。必须通过 App Execution Alias（即 AppX 重新解析点）启动。
-
+鎶ラ敊鍘熷洜锛歚C:\Program Files\WindowsApps\` 鐩綍榛樿鍙厑璁?TrustedInstaller / SYSTEM 璁块棶锛屾櫘閫氱鐞嗗憳杩涚▼鏃犳硶鐩存帴鎵ц鍏朵笅鐨?EXE銆傚繀椤婚€氳繃 App Execution Alias锛堝嵆 AppX 閲嶆柊瑙ｆ瀽鐐癸級鍚姩銆?
 ---
 
-### 方案 B：下载官方 MSIX Bundle + 依赖（解决依赖问题）✅
+### 鏂规 B锛氫笅杞藉畼鏂?MSIX Bundle + 渚濊禆锛堣В鍐充緷璧栭棶棰橈級鉁?
+#### 3.8 涓嬭浇娓犻亾璋冪爺
 
-#### 3.8 下载渠道调研
-
-| 渠道 | URL | 结果 |
+| 娓犻亾 | URL | 缁撴灉 |
 |------|-----|------|
-| GitHub releases 直连 | `https://github.com/microsoft/terminal/releases/download/v1.24.11911.0/Microsoft.WindowsTerminal_1.24.11911.0_8wekyb3d8bbwe.msixbundle` | ❌ 网络不稳，下载到 6.6 MB 即超时中断（文件实际 21.3 MB） |
-| GitHub S3 直连 | `objects.githubusercontent.com/...?X-Amz-Algorithm=...` | ❌ `401 未授权` |
-| GitHub proxy（无 token） | `https://release-assets.githubusercontent.com/...` | ❌ `jwt: jwt-not-provided`（需 JWT 鉴权） |
-| gh-proxy.org | `https://gh-proxy.org/https://github.com/...` | ✅ **下载成功**（推荐姿势） |
+| GitHub releases 鐩磋繛 | `https://github.com/microsoft/terminal/releases/download/v1.24.11911.0/Microsoft.WindowsTerminal_1.24.11911.0_8wekyb3d8bbwe.msixbundle` | 鉂?缃戠粶涓嶇ǔ锛屼笅杞藉埌 6.6 MB 鍗宠秴鏃朵腑鏂紙鏂囦欢瀹為檯 21.3 MB锛?|
+| GitHub S3 鐩磋繛 | `objects.githubusercontent.com/...?X-Amz-Algorithm=...` | 鉂?`401 鏈巿鏉僠 |
+| GitHub proxy锛堟棤 token锛?| `https://release-assets.githubusercontent.com/...` | 鉂?`jwt: jwt-not-provided`锛堥渶 JWT 閴存潈锛?|
+| gh-proxy.org | `https://gh-proxy.org/https://github.com/...` | 鉁?**涓嬭浇鎴愬姛**锛堟帹鑽愬Э鍔匡級 |
 
-#### 3.9 最终下载姿势（推荐）✅
+#### 3.9 鏈€缁堜笅杞藉Э鍔匡紙鎺ㄨ崘锛夆渽
 
-下载官方提供的 **Windows10 PreinstallKit**（包含 MSIX Bundle + 全部框架依赖）：
+涓嬭浇瀹樻柟鎻愪緵鐨?**Windows10 PreinstallKit**锛堝寘鍚?MSIX Bundle + 鍏ㄩ儴妗嗘灦渚濊禆锛夛細
 
 ```powershell
 $proxyUrl = "https://gh-proxy.org/https://github.com/microsoft/terminal/releases/download/v1.24.11911.0/Microsoft.WindowsTerminal_1.24.11911.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip"
@@ -150,21 +128,19 @@ $outFile  = "$env:USERPROFILE\Downloads\WindowsTerminal_PreinstallKit.zip"
 Invoke-WebRequest -Uri $proxyUrl -OutFile $outFile -UseBasicParsing -TimeoutSec 900
 ```
 
-**下载结果**：
-
+**涓嬭浇缁撴灉**锛?
 ```
-下载完成。Size: 41378557 bytes (≈ 39.5 MB)
+涓嬭浇瀹屾垚銆係ize: 41378557 bytes (鈮?39.5 MB)
 ```
 
-**SHA256 校验**（与 GitHub release 页一致 ✅）：
-
+**SHA256 鏍￠獙**锛堜笌 GitHub release 椤典竴鑷?鉁咃級锛?
 ```
 Expected: 5666626d9477cea8f160536e09c7070fc5ffc0efb40de5a05fb1949aeb6c10fb
 Actual:   5666626d9477cea8f160536e09c7070fc5ffc0efb40de5a05fb1949aeb6c10fb
-✅ Hash matches - file verified
+鉁?Hash matches - file verified
 ```
 
-#### 3.10 解压 PreinstallKit
+#### 3.10 瑙ｅ帇 PreinstallKit
 
 ```powershell
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -174,23 +150,22 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 )
 ```
 
-解压后文件清单：
+瑙ｅ帇鍚庢枃浠舵竻鍗曪細
 
 ```
 WTPackage\
-├── 311980e3610042a2bcbd9da24ad6680a.msixbundle                                    (22.3 MB, Windows Terminal 主包)
-├── 311980e3610042a2bcbd9da24ad6680a_License1.xml                                  (2.6 KB)
-├── AUMIDs.txt                                                                     (135 B)
-├── MPAP_311980e3610042a2bcbd9da24ad6680a_001.provxml                             (957 B)
-├── Microsoft.UI.Xaml.2.8_8.2501.31001.0_arm64__8wekyb3d8bbwe.appx                 (4.8 MB)
-├── Microsoft.UI.Xaml.2.8_8.2501.31001.0_arm__8wekyb3d8bbwe.appx                   (4.8 MB)
-├── Microsoft.UI.Xaml.2.8_8.2501.31001.0_x64__8wekyb3d8bbwe.appx                   (4.7 MB)
-└── Microsoft.UI.Xaml.2.8_8.2501.31001.0_x86__8wekyb3d8bbwe.appx                   (4.4 MB)
+鈹溾攢鈹€ 311980e3610042a2bcbd9da24ad6680a.msixbundle                                    (22.3 MB, Windows Terminal 涓诲寘)
+鈹溾攢鈹€ 311980e3610042a2bcbd9da24ad6680a_License1.xml                                  (2.6 KB)
+鈹溾攢鈹€ AUMIDs.txt                                                                     (135 B)
+鈹溾攢鈹€ MPAP_311980e3610042a2bcbd9da24ad6680a_001.provxml                             (957 B)
+鈹溾攢鈹€ Microsoft.UI.Xaml.2.8_8.2501.31001.0_arm64__8wekyb3d8bbwe.appx                 (4.8 MB)
+鈹溾攢鈹€ Microsoft.UI.Xaml.2.8_8.2501.31001.0_arm__8wekyb3d8bbwe.appx                   (4.8 MB)
+鈹溾攢鈹€ Microsoft.UI.Xaml.2.8_8.2501.31001.0_x64__8wekyb3d8bbwe.appx                   (4.7 MB)
+鈹斺攢鈹€ Microsoft.UI.Xaml.2.8_8.2501.31001.0_x86__8wekyb3d8bbwe.appx                   (4.4 MB)
 ```
 
-> 注意：包里的 `Microsoft.UI.Xaml.2.8` 版本是 **8.2501.31001.0**（比 Chocolatey 包要求的 8.2305.5001.0 更新，完全满足）。
-
-#### 3.11 安装框架依赖（先装依赖，再装主包）✅
+> 娉ㄦ剰锛氬寘閲岀殑 `Microsoft.UI.Xaml.2.8` 鐗堟湰鏄?**8.2501.31001.0**锛堟瘮 Chocolatey 鍖呰姹傜殑 8.2305.5001.0 鏇存柊锛屽畬鍏ㄦ弧瓒筹級銆?
+#### 3.11 瀹夎妗嗘灦渚濊禆锛堝厛瑁呬緷璧栵紝鍐嶈涓诲寘锛夆渽
 
 ```powershell
 $pkgDir  = "$env:USERPROFILE\Downloads\WTPackage"
@@ -198,25 +173,22 @@ $xamlAppx = "$pkgDir\Microsoft.UI.Xaml.2.8_8.2501.31001.0_x64__8wekyb3d8bbwe.app
 Add-AppxPackage -Path $xamlAppx
 ```
 
-**验证**：
-
+**楠岃瘉**锛?
 ```powershell
 Get-AppxPackage -Name "Microsoft.UI.Xaml*" -AllUsers | Select Name, Version, Status
 # Name                  Version         Status
 # ----                  -------         ------
 # Microsoft.UI.Xaml.2.0 2.1810.18004.0  Ok
-# Microsoft.UI.Xaml.2.8 8.2501.31001.0  Ok   ← 新装
+# Microsoft.UI.Xaml.2.8 8.2501.31001.0  Ok   鈫?鏂拌
 ```
 
-#### 3.12 安装 Windows Terminal 主包 ✅
-
+#### 3.12 瀹夎 Windows Terminal 涓诲寘 鉁?
 ```powershell
 $bundle = "$pkgDir\311980e3610042a2bcbd9da24ad6680a.msixbundle"
 Add-AppxPackage -Path $bundle
 ```
 
-**最终验证**：
-
+**鏈€缁堥獙璇?*锛?
 ```powershell
 Get-AppxPackage -Name Microsoft.WindowsTerminal -AllUsers |
     Select-Object Name, Version, Status, InstallLocation
@@ -227,140 +199,124 @@ Get-AppxPackage -Name Microsoft.WindowsTerminal -AllUsers |
 Get-Command wt
 # Name        : wt.exe
 # CommandType : Application
-# Source      : C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps\wt.exe   ← ✅
-
+# Source      : C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps\wt.exe   鈫?鉁?
 Test-Path "C:\Users\$env:USERNAME\AppData\Local\Microsoft\WindowsApps\wt.exe"
-# True   ← ✅ App Execution Alias 已生成
-```
+# True   鈫?鉁?App Execution Alias 宸茬敓鎴?```
 
 ---
 
-## 四、最终结果
-
-| 验证项 | 状态 |
+## 鍥涖€佹渶缁堢粨鏋?
+| 楠岃瘉椤?| 鐘舵€?|
 |--------|------|
-| `Microsoft.WindowsTerminal` AppX 包 | ✅ Ok (1.24.11911.0) |
-| `Microsoft.UI.Xaml.2.8` 框架依赖 | ✅ Ok (8.2501.31001.0) |
-| `wt.exe` App Execution Alias | ✅ 已创建 |
-| `wt` 命令在 PATH 中 | ✅ `Get-Command wt` 可解析 |
-| 启动 `wt.exe` | ✅（依赖交互式用户会话；非交互服务环境下 `Start-Process wt.exe` 报 `找不到适用的应用证书`，是预期行为） |
+| `Microsoft.WindowsTerminal` AppX 鍖?| 鉁?Ok (1.24.11911.0) |
+| `Microsoft.UI.Xaml.2.8` 妗嗘灦渚濊禆 | 鉁?Ok (8.2501.31001.0) |
+| `wt.exe` App Execution Alias | 鉁?宸插垱寤?|
+| `wt` 鍛戒护鍦?PATH 涓?| 鉁?`Get-Command wt` 鍙В鏋?|
+| 鍚姩 `wt.exe` | 鉁咃紙渚濊禆浜や簰寮忕敤鎴蜂細璇濓紱闈炰氦浜掓湇鍔＄幆澧冧笅 `Start-Process wt.exe` 鎶?`鎵句笉鍒伴€傜敤鐨勫簲鐢ㄨ瘉涔锛屾槸棰勬湡琛屼负锛?|
 
-**安装后应用清单**：
-
+**瀹夎鍚庡簲鐢ㄦ竻鍗?*锛?
 ```
 C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.24.11911.0_x64__8wekyb3d8bbwe\
-├── WindowsTerminal.exe        ← 主进程
-├── OpenConsole.exe            ← 兼容旧控制台宿主
-├── wt.exe                     ← 命令行入口
-├── TerminalApp.dll
-├── Microsoft.Terminal.*.dll   ← WinUI / Settings / Control 等
-├── CascadiaCode.ttf           ← 默认字体
-├── CascadiaMono.ttf
-├── defaults.json              ← 默认配置
-└── ...
+鈹溾攢鈹€ WindowsTerminal.exe        鈫?涓昏繘绋?鈹溾攢鈹€ OpenConsole.exe            鈫?鍏煎鏃ф帶鍒跺彴瀹夸富
+鈹溾攢鈹€ wt.exe                     鈫?鍛戒护琛屽叆鍙?鈹溾攢鈹€ TerminalApp.dll
+鈹溾攢鈹€ Microsoft.Terminal.*.dll   鈫?WinUI / Settings / Control 绛?鈹溾攢鈹€ CascadiaCode.ttf           鈫?榛樿瀛椾綋
+鈹溾攢鈹€ CascadiaMono.ttf
+鈹溾攢鈹€ defaults.json              鈫?榛樿閰嶇疆
+鈹斺攢鈹€ ...
 ```
 
 ---
 
-## 五、所有错误汇总
-
-| # | 阶段 | 错误码 | 错误信息（关键片段） | 原因 |
+## 浜斻€佹墍鏈夐敊璇眹鎬?
+| # | 闃舵 | 閿欒鐮?| 閿欒淇℃伅锛堝叧閿墖娈碉級 | 鍘熷洜 |
 |---|------|--------|---------------------|------|
-| 1 | Chocolatey 安装后 | — | `winget : 无法将"winget"识别为 cmdlet` | 系统未装 App Installer / WinGet |
-| 2 | Chocolatey 安装后 | — | `where.exe wt` 找不到命令 | App Execution Alias 未生成 |
-| 3 | 重注册 AppX | `0x80073CF3` | 此程序包依赖于一个找不到的框架。`Microsoft.UI.Xaml.2.8` (8.2305.5001.0) | Chocolatey 包不带框架依赖 |
-| 4 | 启动 `wt.exe` | — | `拒绝访问` | WindowsApps 目录 ACL，普通管理员无法直接 EXE |
-| 5 | GitHub 直连下载 | — | 6.6 MB 超时中断 | 网络不稳，文件实际 21.3 MB |
-| 6 | GitHub S3 直连 | `401` | 未授权 | release asset 走签名 URL，匿名访问受限 |
-| 7 | `release-assets.githubusercontent.com` 代理 | `618` | `jwt: jwt-not-provided` | 该代理需要 JWT token |
-| 8 | 损坏 MSIX bundle 安装 | `0x80073CF0` / `0x8007000D` | 在位于 Microsoft.WindowsTerminal.msixbundle 中打开程序包失败 | 文件下载不完整（ZIP central directory 丢失） |
-| 9 | 非交互环境启动 | — | `找不到适用的应用证书` | AppX GUI 应用必须在交互式用户会话中运行 |
-| 10 | `Remove-AppxPackage` | `0x80070002` | 系统找不到指定的文件 | AppX 已 staged 到 SYSTEM 但本会话无权卸载 |
+| 1 | Chocolatey 瀹夎鍚?| 鈥?| `winget : 鏃犳硶灏?winget"璇嗗埆涓?cmdlet` | 绯荤粺鏈 App Installer / WinGet |
+| 2 | Chocolatey 瀹夎鍚?| 鈥?| `where.exe wt` 鎵句笉鍒板懡浠?| App Execution Alias 鏈敓鎴?|
+| 3 | 閲嶆敞鍐?AppX | `0x80073CF3` | 姝ょ▼搴忓寘渚濊禆浜庝竴涓壘涓嶅埌鐨勬鏋躲€俙Microsoft.UI.Xaml.2.8` (8.2305.5001.0) | Chocolatey 鍖呬笉甯︽鏋朵緷璧?|
+| 4 | 鍚姩 `wt.exe` | 鈥?| `鎷掔粷璁块棶` | WindowsApps 鐩綍 ACL锛屾櫘閫氱鐞嗗憳鏃犳硶鐩存帴 EXE |
+| 5 | GitHub 鐩磋繛涓嬭浇 | 鈥?| 6.6 MB 瓒呮椂涓柇 | 缃戠粶涓嶇ǔ锛屾枃浠跺疄闄?21.3 MB |
+| 6 | GitHub S3 鐩磋繛 | `401` | 鏈巿鏉?| release asset 璧扮鍚?URL锛屽尶鍚嶈闂彈闄?|
+| 7 | `release-assets.githubusercontent.com` 浠ｇ悊 | `618` | `jwt: jwt-not-provided` | 璇ヤ唬鐞嗛渶瑕?JWT token |
+| 8 | 鎹熷潖 MSIX bundle 瀹夎 | `0x80073CF0` / `0x8007000D` | 鍦ㄤ綅浜?Microsoft.WindowsTerminal.msixbundle 涓墦寮€绋嬪簭鍖呭け璐?| 鏂囦欢涓嬭浇涓嶅畬鏁达紙ZIP central directory 涓㈠け锛?|
+| 9 | 闈炰氦浜掔幆澧冨惎鍔?| 鈥?| `鎵句笉鍒伴€傜敤鐨勫簲鐢ㄨ瘉涔 | AppX GUI 搴旂敤蹇呴』鍦ㄤ氦浜掑紡鐢ㄦ埛浼氳瘽涓繍琛?|
+| 10 | `Remove-AppxPackage` | `0x80070002` | 绯荤粺鎵句笉鍒版寚瀹氱殑鏂囦欢 | AppX 宸?staged 鍒?SYSTEM 浣嗘湰浼氳瘽鏃犳潈鍗歌浇 |
 
 ---
 
-## 六、踩坑教训 / 经验
+## 鍏€佽俯鍧戞暀璁?/ 缁忛獙
 
-1. **Chocolatey 安装的 MSIX 包不包含 Framework Package 依赖**。需要先装 Windows App SDK 对应版本的 WinUI 框架。
-2. **Windows 10 离线/无 Store 环境装 Windows Terminal 的最佳姿势**：
-   - 下载 GitHub releases 的 `*_Windows10_PreinstallKit.zip`（已捆绑 `Microsoft.UI.Xaml.*` 等框架）
-   - 先 `Add-AppxPackage` 安装 x64 的 `Microsoft.UI.Xaml.2.8.appx`
-   - 再 `Add-AppxPackage` 安装 `.msixbundle`
-3. **GitHub release 下载不稳**：`gh-proxy.org` 前缀代理是无 token 的可用方案：
+1. **Chocolatey 瀹夎鐨?MSIX 鍖呬笉鍖呭惈 Framework Package 渚濊禆**銆傞渶瑕佸厛瑁?Windows App SDK 瀵瑰簲鐗堟湰鐨?WinUI 妗嗘灦銆?2. **Windows 10 绂荤嚎/鏃?Store 鐜瑁?Windows Terminal 鐨勬渶浣冲Э鍔?*锛?   - 涓嬭浇 GitHub releases 鐨?`*_Windows10_PreinstallKit.zip`锛堝凡鎹嗙粦 `Microsoft.UI.Xaml.*` 绛夋鏋讹級
+   - 鍏?`Add-AppxPackage` 瀹夎 x64 鐨?`Microsoft.UI.Xaml.2.8.appx`
+   - 鍐?`Add-AppxPackage` 瀹夎 `.msixbundle`
+3. **GitHub release 涓嬭浇涓嶇ǔ**锛歚gh-proxy.org` 鍓嶇紑浠ｇ悊鏄棤 token 鐨勫彲鐢ㄦ柟妗堬細
    ```
    https://gh-proxy.org/https://github.com/<user>/<repo>/releases/download/<tag>/<file>
    ```
-4. **必须用 SHA256 校验下载的 PreinstallKit**，避免下到损坏包。损坏包报 `0x8007000D` 错误难定位。
-5. **不要尝试直接执行** `C:\Program Files\WindowsApps\...\wt.exe`，会被 ACL 拒绝。统一通过 App Execution Alias `wt.exe` 启动。
-
+4. **蹇呴』鐢?SHA256 鏍￠獙涓嬭浇鐨?PreinstallKit**锛岄伩鍏嶄笅鍒版崯鍧忓寘銆傛崯鍧忓寘鎶?`0x8007000D` 閿欒闅惧畾浣嶃€?5. **涓嶈灏濊瘯鐩存帴鎵ц** `C:\Program Files\WindowsApps\...\wt.exe`锛屼細琚?ACL 鎷掔粷銆傜粺涓€閫氳繃 App Execution Alias `wt.exe` 鍚姩銆?
 ---
 
-## 七、关键命令速查
+## 涓冦€佸叧閿懡浠ら€熸煡
 
 ```powershell
-# 验证包
-Get-AppxPackage -Name Microsoft.WindowsTerminal -AllUsers
+# 楠岃瘉鍖?Get-AppxPackage -Name Microsoft.WindowsTerminal -AllUsers
 Get-AppxPackage -Name "Microsoft.UI.Xaml*" -AllUsers
 
-# 验证 wt 命令
+# 楠岃瘉 wt 鍛戒护
 Get-Command wt
 Test-Path "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 
-# 卸载（需要交互式管理员会话）
+# 鍗歌浇锛堥渶瑕佷氦浜掑紡绠＄悊鍛樹細璇濓級
 Get-AppxPackage Microsoft.WindowsTerminal -AllUsers | Remove-AppxPackage -AllUsers
 choco uninstall microsoft-windows-terminal -y
 ```
 
 ---
 
-## 八、参考链接
-
+## 鍏€佸弬鑰冮摼鎺?
 - Windows Terminal GitHub: https://github.com/microsoft/terminal
 - Release v1.24.11911.0: https://github.com/microsoft/terminal/releases/tag/v1.24.11911.0
-- PreinstallKit 资产：`Microsoft.WindowsTerminal_1.24.11911.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip`
+- PreinstallKit 璧勪骇锛歚Microsoft.WindowsTerminal_1.24.11911.0_8wekyb3d8bbwe.msixbundle_Windows10_PreinstallKit.zip`
 - Windows App SDK: https://learn.microsoft.com/windows/apps/windows-app-sdk/
-- gh-proxy 代理: https://gh-proxy.org
+- gh-proxy 浠ｇ悊: https://gh-proxy.org
 
 ---
 
-**文档创建时间**：本次安装会话
-**最终状态**：✅ Windows Terminal 1.24.11911.0 + UI.Xaml.2.8 框架已成功安装并验证
+**鏂囨。鍒涘缓鏃堕棿**锛氭湰娆″畨瑁呬細璇?**鏈€缁堢姸鎬?*锛氣渽 Windows Terminal 1.24.11911.0 + UI.Xaml.2.8 妗嗘灦宸叉垚鍔熷畨瑁呭苟楠岃瘉
 
-# 恶意软件清除记录
+# 鎭舵剰杞欢娓呴櫎璁板綍
 
 ---
 
-## 一、发现的恶意软件
+## 涓€銆佸彂鐜扮殑鎭舵剰杞欢
 
-| 项目 | 详情 |
+| 椤圭洰 | 璇︽儏 |
 |------|------|
-| 病毒名称 | **"DirectX.DLL修复工具"** (SmartDLLRepairOfficial) |
-| 感染时间 | 2026/8/10 12:10:26 |
-| 安装路径 | `C:\Program Files (x86)\DLLRepairOfficial\` |
-| 桌面快捷方式 | `DirectX修复工具.lnk` → `DllRepair.exe` |
-| 恶意组件 | `dhp.exe`, `dsbar.exe`, `rps.exe`, `XDLogin.dll`, `WebView.dll`, `CefApp.exe` |
-| 计划任务 | `SmartDLLRepairOfficialTask`, `DirectXDatabaseUpdater` |
-| 类型 | 广告软件 / 浏览器劫持 |
+| 鐥呮瘨鍚嶇О | **"DirectX.DLL淇宸ュ叿"** (SmartDLLRepairOfficial) |
+| 鎰熸煋鏃堕棿 | 2026/8/10 12:10:26 |
+| 瀹夎璺緞 | `C:\Program Files (x86)\DLLRepairOfficial\` |
+| 妗岄潰蹇嵎鏂瑰紡 | `DirectX淇宸ュ叿.lnk` 鈫?`DllRepair.exe` |
+| 鎭舵剰缁勪欢 | `dhp.exe`, `dsbar.exe`, `rps.exe`, `XDLogin.dll`, `WebView.dll`, `CefApp.exe` |
+| 璁″垝浠诲姟 | `SmartDLLRepairOfficialTask`, `DirectXDatabaseUpdater` |
+| 绫诲瀷 | 骞垮憡杞欢 / 娴忚鍣ㄥ姭鎸?|
 
-## 二、清除步骤
-
-### 1. 停止可疑进程
+## 浜屻€佹竻闄ゆ楠?
+### 1. 鍋滄鍙枒杩涚▼
 ```powershell
 Get-Process | Where-Object { $_.ProcessName -match "dhp|dsbar|rps|CefApp|DllRepair" } | Stop-Process -Force
 ```
 
-### 2. 执行卸载程序
+### 2. 鎵ц鍗歌浇绋嬪簭
 ```powershell
 & "C:\Program Files (x86)\DLLRepairOfficial\Uninstall.exe" --silent
 ```
 
-### 3. 删除计划任务
+### 3. 鍒犻櫎璁″垝浠诲姟
 ```powershell
 Unregister-ScheduledTask -TaskName "SmartDLLRepairOfficialTask" -Confirm:$false
 Unregister-ScheduledTask -TaskName "DirectXDatabaseUpdater" -Confirm:$false
 ```
 
-### 4. 清理残留文件
+### 4. 娓呯悊娈嬬暀鏂囦欢
 ```powershell
 Remove-Item "C:\Program Files (x86)\DLLRepairOfficial" -Recurse -Force
 Remove-Item "C:\ProgramData\SmartDLLRepairOfficial" -Recurse -Force
@@ -368,7 +324,7 @@ Remove-Item "C:\ProgramData\DirectXDatabaseUpdater" -Recurse -Force
 Remove-Item "C:\Users\Administrator\Desktop\DirectX*.lnk" -Force
 ```
 
-### 5. 清理注册表启动项
+### 5. 娓呯悊娉ㄥ唽琛ㄥ惎鍔ㄩ」
 ```powershell
 Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" |
     Get-Member -MemberType NoteProperty | ForEach-Object {
@@ -379,87 +335,74 @@ Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" |
     }
 ```
 
-## 三、最终检查结果
-
-| 检查项 | 状态 |
+## 涓夈€佹渶缁堟鏌ョ粨鏋?
+| 妫€鏌ラ」 | 鐘舵€?|
 |--------|------|
-| 可疑目录 | ✅ 已删除 |
-| 桌面快捷方式 | ✅ 已删除 |
-| 计划任务 | ✅ 已删除 |
-| 可疑进程 | ✅ 无残留 |
-| 注册表启动项 | ✅ 已清理 |
+| 鍙枒鐩綍 | 鉁?宸插垹闄?|
+| 妗岄潰蹇嵎鏂瑰紡 | 鉁?宸插垹闄?|
+| 璁″垝浠诲姟 | 鉁?宸插垹闄?|
+| 鍙枒杩涚▼ | 鉁?鏃犳畫鐣?|
+| 娉ㄥ唽琛ㄥ惎鍔ㄩ」 | 鉁?宸叉竻鐞?|
 
 ---
 
-## 四、360安全卫士 + 爱奇艺 彻底清除记录（2026-09-17）
-
-### 1. 发现的威胁
-
-| 项目 | 详情 |
+## 鍥涖€?60瀹夊叏鍗＋ + 鐖卞鑹?褰诲簳娓呴櫎璁板綍锛?026-09-17锛?
+### 1. 鍙戠幇鐨勫▉鑳?
+| 椤圭洰 | 璇︽儏 |
 |------|------|
-| **360安全卫士** | `C:\Program Files (x86)\360\360Safe\` |
-| 爱奇艺 | `C:\Program Files\IQIYI Video\` |
-| 360内核驱动 | 8个（360netmon, 360Box64, 360Camera, 360AntiHacker, 360Hvm, 360AntiHijack, 360AntiSteal, 360FsFlt） |
-| 360进程 | `ZhuDongFangYu.exe`（主动防御）、`safesvr.exe`（安全服务） |
-| 爱奇艺进程 | `QiyiService.exe`、`QyKernel.exe` |
-| 爱奇艺服务 | `QiyiService`（Running） |
-| 爱奇艺计划任务 | `SmartDLLRepairOfficialTask`、`DirectXDatabaseUpdater` |
+| **360瀹夊叏鍗＋** | `C:\Program Files (x86)\360\360Safe\` |
+| 鐖卞鑹?| `C:\Program Files\IQIYI Video\` |
+| 360鍐呮牳椹卞姩 | 8涓紙360netmon, 360Box64, 360Camera, 360AntiHacker, 360Hvm, 360AntiHijack, 360AntiSteal, 360FsFlt锛?|
+| 360杩涚▼ | `ZhuDongFangYu.exe`锛堜富鍔ㄩ槻寰★級銆乣safesvr.exe`锛堝畨鍏ㄦ湇鍔★級 |
+| 鐖卞鑹鸿繘绋?| `QiyiService.exe`銆乣QyKernel.exe` |
+| 鐖卞鑹烘湇鍔?| `QiyiService`锛圧unning锛?|
+| 鐖卞鑹鸿鍒掍换鍔?| `SmartDLLRepairOfficialTask`銆乣DirectXDatabaseUpdater` |
 
-### 2. 清除过程
+### 2. 娓呴櫎杩囩▼
 
-#### 第一轮：正常模式下尝试（失败）
-
+#### 绗竴杞細姝ｅ父妯″紡涓嬪皾璇曪紙澶辫触锛?
 ```powershell
-# 停止爱奇艺服务
-Stop-Service -Name "QiyiService" -Force
+# 鍋滄鐖卞鑹烘湇鍔?Stop-Service -Name "QiyiService" -Force
 
-# 停止爱奇艺进程
-Get-Process -Name "QiyiService","QyKernel" | Stop-Process -Force
+# 鍋滄鐖卞鑹鸿繘绋?Get-Process -Name "QiyiService","QyKernel" | Stop-Process -Force
 
-# 爱奇艺目录删除成功
-Remove-Item "C:\Program Files\IQIYI Video" -Recurse -Force
+# 鐖卞鑹虹洰褰曞垹闄ゆ垚鍔?Remove-Item "C:\Program Files\IQIYI Video" -Recurse -Force
 
-# 360进程停止（但被内核驱动保护，无法真正停止）
-Stop-Process -Name "ZhuDongFangYu" -Force
+# 360杩涚▼鍋滄锛堜絾琚唴鏍搁┍鍔ㄤ繚鎶わ紝鏃犳硶鐪熸鍋滄锛?Stop-Process -Name "ZhuDongFangYu" -Force
 
-# 360内核驱动禁用
+# 360鍐呮牳椹卞姩绂佺敤
 sc.exe config 360netmon start= disabled
 sc.exe stop 360netmon
-# ... 对8个驱动重复操作
-
-# 360驱动文件删除（成功）
+# ... 瀵?涓┍鍔ㄩ噸澶嶆搷浣?
+# 360椹卞姩鏂囦欢鍒犻櫎锛堟垚鍔燂級
 Remove-Item "C:\Windows\System32\Drivers\360*.sys" -Force
 Remove-Item "C:\Windows\System32\DRIVERS\360*.sys" -Force
 
-# 360程序目录删除（失败 - 被锁定）
+# 360绋嬪簭鐩綍鍒犻櫎锛堝け璐?- 琚攣瀹氾級
 Remove-Item "C:\Program Files (x86)\360" -Recurse -Force
-# 报错：访问被拒绝
+# 鎶ラ敊锛氳闂鎷掔粷
 ```
 
-**问题**：360有内核级自我保护，正常模式下无法删除程序目录。
-
-#### 第二轮：安全模式下尝试（部分成功）
-
+**闂**锛?60鏈夊唴鏍哥骇鑷垜淇濇姢锛屾甯告ā寮忎笅鏃犳硶鍒犻櫎绋嬪簭鐩綍銆?
+#### 绗簩杞細瀹夊叏妯″紡涓嬪皾璇曪紙閮ㄥ垎鎴愬姛锛?
 ```powershell
-# 进入安全模式
-msconfig → 引导 → 安全引导(网络) → 重启
+# 杩涘叆瀹夊叏妯″紡
+msconfig 鈫?寮曞 鈫?瀹夊叏寮曞(缃戠粶) 鈫?閲嶅惎
 
-# 安全模式下运行删除脚本
-taskkill /F /IM "ZhuDongFangYu.exe"
+# 瀹夊叏妯″紡涓嬭繍琛屽垹闄よ剼鏈?taskkill /F /IM "ZhuDongFangYu.exe"
 taskkill /F /IM "safesvr.exe"
 rmdir /s /q "C:\Program Files (x86)\360"
 ```
 
-**问题**：4个Shell扩展DLL被Windows资源管理器加载，无法删除：
-- `360base64.dll`
+**闂**锛?涓猄hell鎵╁睍DLL琚玏indows璧勬簮绠＄悊鍣ㄥ姞杞斤紝鏃犳硶鍒犻櫎锛?- `360base64.dll`
 - `360UDiskGuard64.dll`
 - `SoftMgrExt64.dll`
 - `shell360ext64.dll`
 
-#### 第三轮：MoveFileEx API 强制删除（成功）
+#### 绗笁杞細MoveFileEx API 寮哄埗鍒犻櫎锛堟垚鍔燂級
 
 ```powershell
-# 使用Windows内核API安排重启删除
+# 浣跨敤Windows鍐呮牳API瀹夋帓閲嶅惎鍒犻櫎
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -474,128 +417,113 @@ public class FileMover {
 }
 "@
 
-# 安排删除4个锁定的DLL
+# 瀹夋帓鍒犻櫎4涓攣瀹氱殑DLL
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360\360Safe\360base64.dll")
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360\360Safe\safemon\360UDiskGuard64.dll")
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360\360Safe\SoftMgr\SoftMgrExt64.dll")
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360\360Safe\Utils\shell360ext64.dll")
 
-# 安排删除整个目录
+# 瀹夋帓鍒犻櫎鏁翠釜鐩綍
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360\360Safe")
 [FileMover]::DeleteOnReboot("C:\Program Files (x86)\360")
 ```
 
-**原理**：`MoveFileEx` + `MOVEFILE_DELAY_UNTIL_REBOOT` 标志让Windows内核在重启时、任何程序加载前删除文件。
-
-#### 第四轮：清理最后残留
-
+**鍘熺悊**锛歚MoveFileEx` + `MOVEFILE_DELAY_UNTIL_REBOOT` 鏍囧織璁￤indows鍐呮牳鍦ㄩ噸鍚椂銆佷换浣曠▼搴忓姞杞藉墠鍒犻櫎鏂囦欢銆?
+#### 绗洓杞細娓呯悊鏈€鍚庢畫鐣?
 ```powershell
-# 删除AppData下的360目录
+# 鍒犻櫎AppData涓嬬殑360鐩綍
 Remove-Item "C:\Users\Administrator\AppData\Roaming\360safe" -Recurse -Force
 
-# 删除注册表启动项
+# 鍒犻櫎娉ㄥ唽琛ㄥ惎鍔ㄩ」
 Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "360huabao" -Force
 ```
 
-### 3. 最终检查结果
-
-| 检查项 | 状态 |
+### 3. 鏈€缁堟鏌ョ粨鏋?
+| 妫€鏌ラ」 | 鐘舵€?|
 |--------|------|
-| 进程 | ✅ 无360/爱奇艺进程 |
-| 内核驱动 | ✅ 无360驱动 |
-| 驱动文件 | ✅ 无360 .sys文件 |
-| 程序目录 | ✅ `C:\Program Files (x86)\360` 已删除 |
-| ProgramData | ✅ 无360残留 |
-| AppData | ✅ 无360残留 |
-| 注册表启动项 | ✅ 无360启动项 |
-| 计划任务 | ✅ 无360计划任务 |
-| 爱奇艺目录 | ✅ 已删除 |
-| 爱奇艺服务 | ✅ 已停止并删除 |
+| 杩涚▼ | 鉁?鏃?60/鐖卞鑹鸿繘绋?|
+| 鍐呮牳椹卞姩 | 鉁?鏃?60椹卞姩 |
+| 椹卞姩鏂囦欢 | 鉁?鏃?60 .sys鏂囦欢 |
+| 绋嬪簭鐩綍 | 鉁?`C:\Program Files (x86)\360` 宸插垹闄?|
+| ProgramData | 鉁?鏃?60娈嬬暀 |
+| AppData | 鉁?鏃?60娈嬬暀 |
+| 娉ㄥ唽琛ㄥ惎鍔ㄩ」 | 鉁?鏃?60鍚姩椤?|
+| 璁″垝浠诲姟 | 鉁?鏃?60璁″垝浠诲姟 |
+| 鐖卞鑹虹洰褰?| 鉁?宸插垹闄?|
+| 鐖卞鑹烘湇鍔?| 鉁?宸插仠姝㈠苟鍒犻櫎 |
 
-### 4. 踩坑教训
+### 4. 韪╁潙鏁欒
 
-| # | 问题 | 解决方案 |
+| # | 闂 | 瑙ｅ喅鏂规 |
 |---|------|----------|
-| 1 | 360有内核级自我保护，正常模式无法停止进程 | 必须进入安全模式 |
-| 2 | 安全模式下仍无法删除Shell扩展DLL | 使用 `MoveFileEx` API 安排重启删除 |
-| 3 | 普通 `Remove-Item` 无法删除被锁定的文件 | 使用 `MOVEFILE_DELAY_UNTIL_REBOOT` 标志 |
-| 4 | 360注册表启动项 `360huabao` 容易遗漏 | 清除后需检查注册表 `Run` 项 |
-| 5 | AppData下的360目录容易遗漏 | 清除后需检查 `AppData\Roaming\360*` |
+| 1 | 360鏈夊唴鏍哥骇鑷垜淇濇姢锛屾甯告ā寮忔棤娉曞仠姝㈣繘绋?| 蹇呴』杩涘叆瀹夊叏妯″紡 |
+| 2 | 瀹夊叏妯″紡涓嬩粛鏃犳硶鍒犻櫎Shell鎵╁睍DLL | 浣跨敤 `MoveFileEx` API 瀹夋帓閲嶅惎鍒犻櫎 |
+| 3 | 鏅€?`Remove-Item` 鏃犳硶鍒犻櫎琚攣瀹氱殑鏂囦欢 | 浣跨敤 `MOVEFILE_DELAY_UNTIL_REBOOT` 鏍囧織 |
+| 4 | 360娉ㄥ唽琛ㄥ惎鍔ㄩ」 `360huabao` 瀹规槗閬楁紡 | 娓呴櫎鍚庨渶妫€鏌ユ敞鍐岃〃 `Run` 椤?|
+| 5 | AppData涓嬬殑360鐩綍瀹规槗閬楁紡 | 娓呴櫎鍚庨渶妫€鏌?`AppData\Roaming\360*` |
 
-### 5. 彻底清除360的标准流程
-
+### 5. 褰诲簳娓呴櫎360鐨勬爣鍑嗘祦绋?
 ```
-1. 进入安全模式 (msconfig → 安全引导 → 网络)
-2. 运行 taskkill /F 终止所有360进程
-3. 禁用所有360服务 (sc config start= disabled)
-4. 删除360程序目录 (rmdir /s /q)
-5. 删除360驱动文件 (del /f /q *.sys)
-6. 清理注册表 (reg delete)
-7. 重启回正常模式
-8. 用 MoveFileEx API 删除被锁定的DLL
-9. 再次重启完成删除
-10. 清理AppData和注册表启动项
-```
+1. 杩涘叆瀹夊叏妯″紡 (msconfig 鈫?瀹夊叏寮曞 鈫?缃戠粶)
+2. 杩愯 taskkill /F 缁堟鎵€鏈?60杩涚▼
+3. 绂佺敤鎵€鏈?60鏈嶅姟 (sc config start= disabled)
+4. 鍒犻櫎360绋嬪簭鐩綍 (rmdir /s /q)
+5. 鍒犻櫎360椹卞姩鏂囦欢 (del /f /q *.sys)
+6. 娓呯悊娉ㄥ唽琛?(reg delete)
+7. 閲嶅惎鍥炴甯告ā寮?8. 鐢?MoveFileEx API 鍒犻櫎琚攣瀹氱殑DLL
+9. 鍐嶆閲嶅惎瀹屾垚鍒犻櫎
+10. 娓呯悊AppData鍜屾敞鍐岃〃鍚姩椤?```
 
 ---
 
-# Windows Terminal 使用指南
+# Windows Terminal 浣跨敤鎸囧崡
 
-> 安装完之后怎么用——常用快捷键、配置、调优、踩坑。
-
+> 瀹夎瀹屼箣鍚庢€庝箞鐢ㄢ€斺€斿父鐢ㄥ揩鎹烽敭銆侀厤缃€佽皟浼樸€佽俯鍧戙€?
 ---
 
-## 九、快速上手
+## 涔濄€佸揩閫熶笂鎵?
+### 9.1 鍚姩鏂瑰紡
 
-### 9.1 启动方式
-
-| 方式 | 操作 |
+| 鏂瑰紡 | 鎿嶄綔 |
 |------|------|
-| 开始菜单 | 搜索「Windows Terminal」 |
-| 运行 | `Win + R` → 输入 `wt` 回车 |
-| 命令行 | 在任意终端执行 `wt.exe` |
-| 指定 profile 启动 | `wt -p "Ubuntu"` |
-| 以管理员身份启动 | 开始菜单右键 → `更多` → `以管理员身份运行` |
+| 寮€濮嬭彍鍗?| 鎼滅储銆學indows Terminal銆?|
+| 杩愯 | `Win + R` 鈫?杈撳叆 `wt` 鍥炶溅 |
+| 鍛戒护琛?| 鍦ㄤ换鎰忕粓绔墽琛?`wt.exe` |
+| 鎸囧畾 profile 鍚姩 | `wt -p "Ubuntu"` |
+| 浠ョ鐞嗗憳韬唤鍚姩 | 寮€濮嬭彍鍗曞彸閿?鈫?`鏇村` 鈫?`浠ョ鐞嗗憳韬唤杩愯` |
 
-### 9.2 设置为默认终端（强烈推荐）
+### 9.2 璁剧疆涓洪粯璁ょ粓绔紙寮虹儓鎺ㄨ崘锛?
+Windows Terminal 1.16+ 鏀寔鎺ョ绯荤粺鐨勯粯璁ょ粓绔細
 
-Windows Terminal 1.16+ 支持接管系统的默认终端：
+1. 鎵撳紑 Windows Terminal 鈫?`Ctrl + ,` 鎵撳紑璁剧疆
+2. 宸︿笅瑙?鈫?`鍚姩` 鈫?`榛樿閰嶇疆鏂囦欢`锛堥€夋渶甯哥敤鐨?shell锛?3. 鍏抽敭姝ラ锛歚璁剧疆` 鈫?`闅愮鍜屽畨鍏╜ 鈫?`寮€鍙戣€呮ā寮廯锛圵in10 鏃х増鏄?`寮€鍙戣€呴€夐」`锛夆啋 **寮€鍚€岀粓绔€嶄腑鐨勫紑鍙戣€呮ā寮?*
+4. 鍐嶅埌 `璁剧疆` 鈫?`绯荤粺` 鈫?`寮€鍙戣€呴€夐」` 鈫?`缁堢` 鈫?**鎶婇粯璁ょ粓绔簲鐢ㄦ敼涓恒€學indows Terminal銆?*
 
-1. 打开 Windows Terminal → `Ctrl + ,` 打开设置
-2. 左下角 → `启动` → `默认配置文件`（选最常用的 shell）
-3. 关键步骤：`设置` → `隐私和安全` → `开发者模式`（Win10 旧版是 `开发者选项`）→ **开启「终端」中的开发者模式**
-4. 再到 `设置` → `系统` → `开发者选项` → `终端` → **把默认终端应用改为「Windows Terminal」**
+涔嬪悗锛?- `Win + R` 鈫?`cmd` / `powershell` 鈫?閮藉紑鍦?Windows Terminal 閲?- VS Code銆佹枃浠惰祫婧愮鐞嗗櫒鍦板潃鏍忚緭鍏?`cmd` 鈫?鍚屾牱杩?WT
 
-之后：
-- `Win + R` → `cmd` / `powershell` → 都开在 Windows Terminal 里
-- VS Code、文件资源管理器地址栏输入 `cmd` → 同样进 WT
-
-> ⚠️ Win10 2004 较老，「开发者模式」开关路径可能略有差异；找不到就用 `Ctrl + ,` → 设置 UI 里搜「默认终端」。
-
+> 鈿狅笍 Win10 2004 杈冭€侊紝銆屽紑鍙戣€呮ā寮忋€嶅紑鍏宠矾寰勫彲鑳界暐鏈夊樊寮傦紱鎵句笉鍒板氨鐢?`Ctrl + ,` 鈫?璁剧疆 UI 閲屾悳銆岄粯璁ょ粓绔€嶃€?
 ---
 
-## 十、配置文件 `settings.json`
+## 鍗併€侀厤缃枃浠?`settings.json`
 
-### 10.1 打开配置文件
+### 10.1 鎵撳紑閰嶇疆鏂囦欢
 
-- 快捷键：`Ctrl + Shift + ,`
-- 或 UI 设置里点左上角 `⌘` → `打开 JSON 文件`
+- 蹇嵎閿細`Ctrl + Shift + ,`
+- 鎴?UI 璁剧疆閲岀偣宸︿笂瑙?`鈱榒 鈫?`鎵撳紑 JSON 鏂囦欢`
 
-文件位置：
-
+鏂囦欢浣嶇疆锛?
 ```
 %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
 ```
 
-### 10.2 文件结构概览
+### 10.2 鏂囦欢缁撴瀯姒傝
 
 ```jsonc
 {
   "$schema": "https://aka.ms/terminal-profiles-schema",
-  "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",  // 默认 profile GUID
+  "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",  // 榛樿 profile GUID
   "profiles": {
-    "defaults": {              // 所有 profile 的默认值
-      "fontFace": "Cascadia Code",
+    "defaults": {              // 鎵€鏈?profile 鐨勯粯璁ゅ€?      "fontFace": "Cascadia Code",
       "fontSize": 11,
       "padding": "8, 8, 8, 8",
       "useAcrylic": true,
@@ -604,24 +532,23 @@ Windows Terminal 1.16+ 支持接管系统的默认终端：
     },
     "list": [
       { "guid": "{61c54bbd-...}", "name": "Windows PowerShell", "commandline": "powershell.exe" },
-      { "guid": "{0caa0dad-...}", "name": "命令提示符",       "commandline": "cmd.exe" },
+      { "guid": "{0caa0dad-...}", "name": "鍛戒护鎻愮ず绗?,       "commandline": "cmd.exe" },
       { "guid": "{2c4de342-...}", "name": "Ubuntu",            "commandline": "wsl.exe -d Ubuntu" }
     ]
   },
-  "schemes": [ /* 配色方案 */ ],
-  "keybindings": [ /* 快捷键 */ ],
+  "schemes": [ /* 閰嶈壊鏂规 */ ],
+  "keybindings": [ /* 蹇嵎閿?*/ ],
   "actions": []
 }
 ```
 
-### 10.3 推荐配置片段（直接复制粘贴用）
-
-#### 1) PowerShell 美化 + 自动补全图标
+### 10.3 鎺ㄨ崘閰嶇疆鐗囨锛堢洿鎺ュ鍒剁矘璐寸敤锛?
+#### 1) PowerShell 缇庡寲 + 鑷姩琛ュ叏鍥炬爣
 
 ```jsonc
 "profiles": {
   "defaults": {
-    "fontFace": "Cascadia Code NF",   // 需要先装 Nerd Font
+    "fontFace": "Cascadia Code NF",   // 闇€瑕佸厛瑁?Nerd Font
     "fontSize": 12,
     "padding": "10",
     "startingDirectory": "%USERPROFILE%",
@@ -633,8 +560,7 @@ Windows Terminal 1.16+ 支持接管系统的默认终端：
 }
 ```
 
-#### 2) Git Bash 加入 profile（如果装了 Git for Windows）
-
+#### 2) Git Bash 鍔犲叆 profile锛堝鏋滆浜?Git for Windows锛?
 ```jsonc
 {
   "guid": "{b1e5b3a4-1234-5678-9abc-def012345678}",
@@ -644,19 +570,18 @@ Windows Terminal 1.16+ 支持接管系统的默认终端：
 }
 ```
 
-#### 3) SSH 远程登录 profile
+#### 3) SSH 杩滅▼鐧诲綍 profile
 
 ```jsonc
 {
   "guid": "{11111111-2222-3333-4444-555555555555}",
   "name": "My-Server",
-  "commandline": "ssh user@192.168.1.100",
+  "commandline": "ssh user@192.0.2.100",
   "icon": "ms-appx:///ProfileIcons/{0caa0dad-35a3-2a25-56bc-969a52f2e5cf}.png"
 }
 ```
 
-#### 4) 配色方案（添加到 `schemes` 数组）
-
+#### 4) 閰嶈壊鏂规锛堟坊鍔犲埌 `schemes` 鏁扮粍锛?
 ```jsonc
 {
   "name": "OneHalfDark",
@@ -673,63 +598,56 @@ Windows Terminal 1.16+ 支持接管系统的默认终端：
 
 ---
 
-## 十一、必备快捷键
+## 鍗佷竴銆佸繀澶囧揩鎹烽敭
 
-### 11.1 标签页
-
-| 快捷键 | 功能 |
+### 11.1 鏍囩椤?
+| 蹇嵎閿?| 鍔熻兘 |
 |--------|------|
-| `Ctrl + Shift + T` | 新建标签页（沿用默认 profile） |
-| `Ctrl + Shift + N` | 新建窗口 |
-| `Ctrl + T` | 打开命令面板（搜索所有命令） |
-| `Ctrl + Tab` / `Ctrl + Shift + Tab` | 切换下一个 / 上一个标签 |
-| `Ctrl + 数字 1-9` | 直接跳到第 N 个标签 |
-| `Alt + Shift + ←/→` | 移动当前标签位置 |
-| `Ctrl + Shift + W` | 关闭当前标签 |
+| `Ctrl + Shift + T` | 鏂板缓鏍囩椤碉紙娌跨敤榛樿 profile锛?|
+| `Ctrl + Shift + N` | 鏂板缓绐楀彛 |
+| `Ctrl + T` | 鎵撳紑鍛戒护闈㈡澘锛堟悳绱㈡墍鏈夊懡浠わ級 |
+| `Ctrl + Tab` / `Ctrl + Shift + Tab` | 鍒囨崲涓嬩竴涓?/ 涓婁竴涓爣绛?|
+| `Ctrl + 鏁板瓧 1-9` | 鐩存帴璺冲埌绗?N 涓爣绛?|
+| `Alt + Shift + 鈫?鈫抈 | 绉诲姩褰撳墠鏍囩浣嶇疆 |
+| `Ctrl + Shift + W` | 鍏抽棴褰撳墠鏍囩 |
 
-### 11.2 窗格（分屏）
+### 11.2 绐楁牸锛堝垎灞忥級
 
-| 快捷键 | 功能 |
+| 蹇嵎閿?| 鍔熻兘 |
 |--------|------|
-| `Alt + Shift + D` | 复制当前窗格（左右分屏） |
-| `Alt + Shift + +` / `Alt + Shift + -` | 上下 / 左右分屏 |
-| `Alt + ←/→/↑/↓` | 窗格间切换焦点 |
-| `Ctrl + Shift + ←/→` | 调整窗格宽度 |
-| `Ctrl + Shift + ↑/↓` | 调整窗格高度 |
+| `Alt + Shift + D` | 澶嶅埗褰撳墠绐楁牸锛堝乏鍙冲垎灞忥級 |
+| `Alt + Shift + +` / `Alt + Shift + -` | 涓婁笅 / 宸﹀彸鍒嗗睆 |
+| `Alt + 鈫?鈫?鈫?鈫揱 | 绐楁牸闂村垏鎹㈢劍鐐?|
+| `Ctrl + Shift + 鈫?鈫抈 | 璋冩暣绐楁牸瀹藉害 |
+| `Ctrl + Shift + 鈫?鈫揱 | 璋冩暣绐楁牸楂樺害 |
 
-### 11.3 文本操作
+### 11.3 鏂囨湰鎿嶄綔
 
-| 快捷键 | 功能 |
+| 蹇嵎閿?| 鍔熻兘 |
 |--------|------|
-| `Ctrl + Shift + C` / `Ctrl + Insert` | 复制 |
-| `Ctrl + Shift + V` / `Shift + Insert` | 粘贴 |
-| `Ctrl + ,` | 打开设置 UI |
-| `Ctrl + Shift + ,` | 打开 `settings.json` |
-| `Ctrl + Shift + F` | 查找（支持正则） |
-| `Ctrl + 滚轮` / `Ctrl + +/-/0` | 缩放字体（`0` 重置） |
+| `Ctrl + Shift + C` / `Ctrl + Insert` | 澶嶅埗 |
+| `Ctrl + Shift + V` / `Shift + Insert` | 绮樿创 |
+| `Ctrl + ,` | 鎵撳紑璁剧疆 UI |
+| `Ctrl + Shift + ,` | 鎵撳紑 `settings.json` |
+| `Ctrl + Shift + F` | 鏌ユ壘锛堟敮鎸佹鍒欙級 |
+| `Ctrl + 婊氳疆` / `Ctrl + +/-/0` | 缂╂斁瀛椾綋锛坄0` 閲嶇疆锛?|
 
-### 11.4 命令面板（`Ctrl + T`）常用命令
-
+### 11.4 鍛戒护闈㈡澘锛坄Ctrl + T`锛夊父鐢ㄥ懡浠?
 ```
-settings                  # 打开设置 UI
-settings json             # 打开 settings.json
-reload config             # 重新加载配置（保存后无需重启）
-toggle always on top      # 窗口置顶
-font size: 14             # 临时改字号
-color scheme: OneHalfDark # 临时切换配色
-close pane                # 关闭当前窗格
+settings                  # 鎵撳紑璁剧疆 UI
+settings json             # 鎵撳紑 settings.json
+reload config             # 閲嶆柊鍔犺浇閰嶇疆锛堜繚瀛樺悗鏃犻渶閲嶅惎锛?toggle always on top      # 绐楀彛缃《
+font size: 14             # 涓存椂鏀瑰瓧鍙?color scheme: OneHalfDark # 涓存椂鍒囨崲閰嶈壊
+close pane                # 鍏抽棴褰撳墠绐楁牸
 ```
 
 ---
 
-## 十二、进阶玩法
-
-### 12.1 用 quake 模式（类似 Guake / yakuake）
-
-Windows Terminal 没有原生 quake 模式，但可以用 AutoHotKey：
-
+## 鍗佷簩銆佽繘闃剁帺娉?
+### 12.1 鐢?quake 妯″紡锛堢被浼?Guake / yakuake锛?
+Windows Terminal 娌℃湁鍘熺敓 quake 妯″紡锛屼絾鍙互鐢?AutoHotKey锛?
 ```ahk
-; Win + ` 召唤/隐藏 Windows Terminal
+; Win + ` 鍙敜/闅愯棌 Windows Terminal
 #`::
     DetectHiddenWindows, On
     IfWinExist ahk_exe WindowsTerminal.exe
@@ -738,282 +656,237 @@ Windows Terminal 没有原生 quake 模式，但可以用 AutoHotKey：
         Run, wt.exe
         WinWait, ahk_exe WindowsTerminal.exe
         WinShow, ahk_exe WindowsTerminal.exe
-        ; 全屏置顶
+        ; 鍏ㄥ睆缃《
         WinSet, Style, ^0x80000, ahk_exe WindowsTerminal.exe
     }
 return
 ```
 
-### 12.2 一键 SSH 到常用服务器
+### 12.2 涓€閿?SSH 鍒板父鐢ㄦ湇鍔″櫒
 
-把多条常用 SSH 加到 profile.list 里，再设个启动参数：
+鎶婂鏉″父鐢?SSH 鍔犲埌 profile.list 閲岋紝鍐嶈涓惎鍔ㄥ弬鏁帮細
 
 ```powershell
-# 启动 WT 并打开到指定服务器的新标签
+# 鍚姩 WT 骞舵墦寮€鍒版寚瀹氭湇鍔″櫒鐨勬柊鏍囩
 wt -p "My-Server"
 ```
 
-### 12.3 命令行参数速查
+### 12.3 鍛戒护琛屽弬鏁伴€熸煡
 
 ```powershell
 wt [options] [command ; command...]
 
-# 常用：
-wt -p "Ubuntu"                         # 用指定 profile
-wt --maximized                         # 最大化启动
-wt --fullscreen                        # 全屏
-wt --pos 100,100 --size 1200,800       # 指定位置和大小
-wt new-tab -p "PowerShell" ; split-pane -p "Ubuntu" -V   # 打开标签 + 竖直分屏
-wt -d "C:\Users\me\project"            # 指定启动目录
+# 甯哥敤锛?wt -p "Ubuntu"                         # 鐢ㄦ寚瀹?profile
+wt --maximized                         # 鏈€澶у寲鍚姩
+wt --fullscreen                        # 鍏ㄥ睆
+wt --pos 100,100 --size 1200,800       # 鎸囧畾浣嶇疆鍜屽ぇ灏?wt new-tab -p "PowerShell" ; split-pane -p "Ubuntu" -V   # 鎵撳紑鏍囩 + 绔栫洿鍒嗗睆
+wt -d "C:\Users\me\project"            # 鎸囧畾鍚姩鐩綍
 ```
 
-### 12.4 配合 Starship / oh-my-posh 美化 Prompt
+### 12.4 閰嶅悎 Starship / oh-my-posh 缇庡寲 Prompt
 
-PowerShell 7 推荐 **Starship**（跨平台、快）：
+PowerShell 7 鎺ㄨ崘 **Starship**锛堣法骞冲彴銆佸揩锛夛細
 
 ```powershell
-# 安装
+# 瀹夎
 winget install --id Starship.Starship
 
-# 编辑 $PROFILE
+# 缂栬緫 $PROFILE
 notepad $PROFILE
-# 添加：
-Invoke-Expression (&starship init powershell)
+# 娣诲姞锛?Invoke-Expression (&starship init powershell)
 ```
 
-或在 PowerShell 5 用 **oh-my-posh**：
-
+鎴栧湪 PowerShell 5 鐢?**oh-my-posh**锛?
 ```powershell
 Install-Module oh-my-posh -Scope CurrentUser
 notepad $PROFILE
-# 添加：
-Import-Module oh-my-posh
+# 娣诲姞锛?Import-Module oh-my-posh
 Set-PoshPrompt -Theme Paradox
 ```
 
-### 12.5 Nerd Font 字体（图标必备）
+### 12.5 Nerd Font 瀛椾綋锛堝浘鏍囧繀澶囷級
 
-图标字体 + Nerd Font 扩展 = 各种文件/工具图标：
-
-1. 下载 [Cascadia Code Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases)
-2. 解压安装所有 `.ttf`
-3. `settings.json` → `fontFace` 改为 `CascadiaCode Nerd Font`（注意空格）
+鍥炬爣瀛椾綋 + Nerd Font 鎵╁睍 = 鍚勭鏂囦欢/宸ュ叿鍥炬爣锛?
+1. 涓嬭浇 [Cascadia Code Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases)
+2. 瑙ｅ帇瀹夎鎵€鏈?`.ttf`
+3. `settings.json` 鈫?`fontFace` 鏀逛负 `CascadiaCode Nerd Font`锛堟敞鎰忕┖鏍硷級
 
 ---
 
-## 十三、常见问题（使用阶段）
+## 鍗佷笁銆佸父瑙侀棶棰橈紙浣跨敤闃舵锛?
+### Q1锛氱矘璐村ぇ閲忓唴瀹瑰崱椤?/ 涔辩爜
+- 鍏抽棴銆宐racketed paste mode銆嶏細鍦?profile 閲屽姞 `"experimental.retroTerminalEffect": false`
+- 鎴栦复鏃?`Ctrl + Shift + V` 鏀逛负 `Ctrl + V` 绯荤粺绮樿创
 
-### Q1：粘贴大量内容卡顿 / 乱码
-- 关闭「bracketed paste mode」：在 profile 里加 `"experimental.retroTerminalEffect": false`
-- 或临时 `Ctrl + Shift + V` 改为 `Ctrl + V` 系统粘贴
-
-### Q2：PowerShell 5 颜色不亮 / 显示老古董配色
-- 用 PowerShell 7 代替：`winget install Microsoft.PowerShell`
-- 或在 PowerShell 5 加 `$PROFILE`：
-  ```powershell
+### Q2锛歅owerShell 5 棰滆壊涓嶄寒 / 鏄剧ず鑰佸彜钁ｉ厤鑹?- 鐢?PowerShell 7 浠ｆ浛锛歚winget install Microsoft.PowerShell`
+- 鎴栧湪 PowerShell 5 鍔?`$PROFILE`锛?  ```powershell
   Set-PSReadLineOption -Colors @{ Command = "Yellow"; Parameter = "Cyan"; Operator = "White" }
   ```
 
-### Q3：WSL 默认进 cmd 不进 bash
-- 修改 `defaultProfile` 为 WSL 的 GUID
-- 或在 WSL profile 里 `"commandline": "wsl.exe -d Ubuntu"`
+### Q3锛歐SL 榛樿杩?cmd 涓嶈繘 bash
+- 淇敼 `defaultProfile` 涓?WSL 鐨?GUID
+- 鎴栧湪 WSL profile 閲?`"commandline": "wsl.exe -d Ubuntu"`
 
-### Q4：想跨设备同步配置
-- 把 `settings.json` 用符号链接指向 OneDrive / 坚果云目录
-- 或用 `scoop import / export` 管理
+### Q4锛氭兂璺ㄨ澶囧悓姝ラ厤缃?- 鎶?`settings.json` 鐢ㄧ鍙烽摼鎺ユ寚鍚?OneDrive / 鍧氭灉浜戠洰褰?- 鎴栫敤 `scoop import / export` 绠＄悊
 
-### Q5：如何打开旧版 cmd 窗口（不通过 WT）
-- `Win + R` → `cmd` → 如果默认终端已改为 WT，会强制在 WT 里开
-- 想强制回老窗口：临时把「默认终端」改回 `Windows 控制台主机`
+### Q5锛氬浣曟墦寮€鏃х増 cmd 绐楀彛锛堜笉閫氳繃 WT锛?- `Win + R` 鈫?`cmd` 鈫?濡傛灉榛樿缁堢宸叉敼涓?WT锛屼細寮哄埗鍦?WT 閲屽紑
+- 鎯冲己鍒跺洖鑰佺獥鍙ｏ細涓存椂鎶娿€岄粯璁ょ粓绔€嶆敼鍥?`Windows 鎺у埗鍙颁富鏈篳
 
-### Q6：中文显示为方框 / 间距不对
-- 安装 `Cascadia Code NF` 或其它 Nerd Font
-- profile 里 `"fontFace": "Cascadia Code NF"`、`"fontSize": 12`
+### Q6锛氫腑鏂囨樉绀轰负鏂规 / 闂磋窛涓嶅
+- 瀹夎 `Cascadia Code NF` 鎴栧叾瀹?Nerd Font
+- profile 閲?`"fontFace": "Cascadia Code NF"`銆乣"fontSize": 12`
 
-### Q7：标签标题显示 `pwsh.exe` 而不是当前目录
-- PowerShell 7：自动就有
-- PowerShell 5：编辑 `$PROFILE` 加：
+### Q7锛氭爣绛炬爣棰樻樉绀?`pwsh.exe` 鑰屼笉鏄綋鍓嶇洰褰?- PowerShell 7锛氳嚜鍔ㄥ氨鏈?- PowerShell 5锛氱紪杈?`$PROFILE` 鍔狅細
   ```powershell
   function prompt { "$pwd\$> " }
   ```
 
-### Q8（关键）：`wt` / `wt.exe` 报 "系统无法执行指定的程序"
-**症状**：
-```cmd
+### Q8锛堝叧閿級锛歚wt` / `wt.exe` 鎶?"绯荤粺鏃犳硶鎵ц鎸囧畾鐨勭▼搴?
+**鐥囩姸**锛?```cmd
 C:\> wt
-系统无法执行指定的程序。
-
+绯荤粺鏃犳硶鎵ц鎸囧畾鐨勭▼搴忋€?
 C:\> wt.exe
-系统无法执行指定的程序。
-```
-PowerShell 里：
+绯荤粺鏃犳硶鎵ц鎸囧畾鐨勭▼搴忋€?```
+PowerShell 閲岋細
 ```powershell
 PS> Start-Process wt.exe
-找不到适用的应用证书
-```
+鎵句笉鍒伴€傜敤鐨勫簲鐢ㄨ瘉涔?```
 
-**原因**：当前 Windows 会话是**非交互式 / 已断开**（`query session` 显示 `断开`）。
-AppX GUI 应用必须经 Shell 通过 `ShellExecute` 激活，直接 `CreateProcess` 在无桌面环境下会失败。
-
-**解决方案**：
-
-1. **最简单 — 用 `start`**：
-   ```cmd
+**鍘熷洜**锛氬綋鍓?Windows 浼氳瘽鏄?*闈炰氦浜掑紡 / 宸叉柇寮€**锛坄query session` 鏄剧ず `鏂紑`锛夈€?AppX GUI 搴旂敤蹇呴』缁?Shell 閫氳繃 `ShellExecute` 婵€娲伙紝鐩存帴 `CreateProcess` 鍦ㄦ棤妗岄潰鐜涓嬩細澶辫触銆?
+**瑙ｅ喅鏂规**锛?
+1. **鏈€绠€鍗?鈥?鐢?`start`**锛?   ```cmd
    start wt
    ```
-   `start` 走 Windows Shell 激活，能跳过 AppX 直接调用的限制。
-
-2. **用 AUMID**：
-   ```cmd
+   `start` 璧?Windows Shell 婵€娲伙紝鑳借烦杩?AppX 鐩存帴璋冪敤鐨勯檺鍒躲€?
+2. **鐢?AUMID**锛?   ```cmd
    explorer shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App
    ```
-   或 PowerShell：
-   ```powershell
+   鎴?PowerShell锛?   ```powershell
    Start-Process "shell:AppsFolder\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
    ```
 
-3. **最稳 — 重新登录交互式桌面**：
-   - 用 RDP / 控制台物理登录后再次执行 `wt`
-   - 重启电脑进入正常桌面 session 也行
-   - 验证当前是否断开：
-     ```cmd
+3. **鏈€绋?鈥?閲嶆柊鐧诲綍浜や簰寮忔闈?*锛?   - 鐢?RDP / 鎺у埗鍙扮墿鐞嗙櫥褰曞悗鍐嶆鎵ц `wt`
+   - 閲嶅惎鐢佃剳杩涘叆姝ｅ父妗岄潰 session 涔熻
+   - 楠岃瘉褰撳墠鏄惁鏂紑锛?     ```cmd
      query session
      ```
-     若输出形如 `console Administrator 1 断开`，就是这个问题。
-
-4. **自动化场景下**（CI / 远程执行）：把 `wt.exe` 的调用全部改成 `cmd /c "start wt"` 或调用 AUMID。
-
+     鑻ヨ緭鍑哄舰濡?`console Administrator 1 鏂紑`锛屽氨鏄繖涓棶棰樸€?
+4. **鑷姩鍖栧満鏅笅**锛圕I / 杩滅▼鎵ц锛夛細鎶?`wt.exe` 鐨勮皟鐢ㄥ叏閮ㄦ敼鎴?`cmd /c "start wt"` 鎴栬皟鐢?AUMID銆?
 ---
 
-## 十四、性能与调试
+## 鍗佸洓銆佹€ц兘涓庤皟璇?
+### 14.1 鍚姩鎱?/ 鍗￠】
 
-### 14.1 启动慢 / 卡顿
-
-`settings.json` 调整：
-
+`settings.json` 璋冩暣锛?
 ```jsonc
 {
   "profiles": {
     "defaults": {
-      "useAcrylic": false,        // 关掉亚克力背景可省 GPU
+      "useAcrylic": false,        // 鍏虫帀浜氬厠鍔涜儗鏅彲鐪?GPU
       "experimental.retroTerminalEffect": false,
-      "antialiasingMode": "grayscale"  // 灰度抗锯齿比 ClearType 快
-    }
+      "antialiasingMode": "grayscale"  // 鐏板害鎶楅敮榻挎瘮 ClearType 蹇?    }
   }
 }
 ```
 
-### 14.2 调试日志
+### 14.2 璋冭瘯鏃ュ織
 
 ```powershell
-# 启动时输出日志到文件
+# 鍚姩鏃惰緭鍑烘棩蹇楀埌鏂囦欢
 wt --logging "C:\Users\$env:USERNAME\Desktop\wt.log"
 ```
 
-或在 `settings.json`：
-
+鎴栧湪 `settings.json`锛?
 ```jsonc
 { "debugFeatures": { "forceFullRepaint": true } }
 ```
 
-### 14.3 重置所有配置
-
+### 14.3 閲嶇疆鎵€鏈夐厤缃?
 ```powershell
-# 删掉 LocalState 即可（不影响 AppX 安装）
-Remove-Item "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState" -Recurse -Force
-# 下次启动会自动重建默认 settings.json
+# 鍒犳帀 LocalState 鍗冲彲锛堜笉褰卞搷 AppX 瀹夎锛?Remove-Item "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState" -Recurse -Force
+# 涓嬫鍚姩浼氳嚜鍔ㄩ噸寤洪粯璁?settings.json
 ```
 
 ---
 
-## 十五、推荐生态（按需安装）
-
-| 工具 | 作用 | 安装 |
+## 鍗佷簲銆佹帹鑽愮敓鎬侊紙鎸夐渶瀹夎锛?
+| 宸ュ叿 | 浣滅敤 | 瀹夎 |
 |------|------|------|
-| PowerShell 7 | 现代 PowerShell 替代 5.1 | `winget install Microsoft.PowerShell` |
-| Windows Terminal 最新预览版 | 抢先体验新特性 | GitHub releases → 选择 `Pre` 标签 |
-| Starship | 跨 shell 的 prompt 主题 | `winget install Starship.Starship` |
-| Nerd Font | 图标字体 | [GitHub releases](https://github.com/ryanoasis/nerd-fonts/releases) |
-| WSL2 | Linux 子系统 | `wsl --install` |
-| eza / lsd | 替代 `ls` 的现代工具 | `scoop install eza` |
-| ripgrep | 超快 grep | `scoop install ripgrep` |
-| fd | 替代 `find` | `scoop install fd` |
-| bat | 替代 `cat`（带高亮） | `scoop install bat` |
+| PowerShell 7 | 鐜颁唬 PowerShell 鏇夸唬 5.1 | `winget install Microsoft.PowerShell` |
+| Windows Terminal 鏈€鏂伴瑙堢増 | 鎶㈠厛浣撻獙鏂扮壒鎬?| GitHub releases 鈫?閫夋嫨 `Pre` 鏍囩 |
+| Starship | 璺?shell 鐨?prompt 涓婚 | `winget install Starship.Starship` |
+| Nerd Font | 鍥炬爣瀛椾綋 | [GitHub releases](https://github.com/ryanoasis/nerd-fonts/releases) |
+| WSL2 | Linux 瀛愮郴缁?| `wsl --install` |
+| eza / lsd | 鏇夸唬 `ls` 鐨勭幇浠ｅ伐鍏?| `scoop install eza` |
+| ripgrep | 瓒呭揩 grep | `scoop install ripgrep` |
+| fd | 鏇夸唬 `find` | `scoop install fd` |
+| bat | 鏇夸唬 `cat`锛堝甫楂樹寒锛?| `scoop install bat` |
 
 ---
 
-## 十六、一句话总结
+## 鍗佸叚銆佷竴鍙ヨ瘽鎬荤粨
 
-- **Win + R → `wt` 回车** = 90% 的使用场景
-- **`Ctrl + T` 命令面板** = 找功能最快
-- **`Ctrl + ,` 设置 UI** = 新手友好
-- **`Ctrl + Shift + ,` JSON** = 高级玩家
-- **`Ctrl + Shift + T` 新标签** + **`Alt + Shift + D` 分屏** = 日常提效
+- **Win + R 鈫?`wt` 鍥炶溅** = 90% 鐨勪娇鐢ㄥ満鏅?- **`Ctrl + T` 鍛戒护闈㈡澘** = 鎵惧姛鑳芥渶蹇?- **`Ctrl + ,` 璁剧疆 UI** = 鏂版墜鍙嬪ソ
+- **`Ctrl + Shift + ,` JSON** = 楂樼骇鐜╁
+- **`Ctrl + Shift + T` 鏂版爣绛?* + **`Alt + Shift + D` 鍒嗗睆** = 鏃ュ父鎻愭晥
 
 ---
 
-# Git 代理管理脚本
+# Git 浠ｇ悊绠＄悊鑴氭湰
 
-> 在 Windows Terminal 中使用 PowerShell 一键管理 Git 的 SOCKS5 代理。
-> 脚本文件: D:\Windows_Terminal\git-proxy.ps1
-
----
-
-## 一、为什么需要这个脚本
-
-- 国内访问 GitHub / GitLab 经常卡顿或超时
-- 设置环境变量 HTTPS_PROXY 会影响所有应用,粒度太粗
-- 直接改 git config 每次都要写一长串命令
-- 这个脚本**只改 git 全局配置**,不影响系统其他应用
+> 鍦?Windows Terminal 涓娇鐢?PowerShell 涓€閿鐞?Git 鐨?SOCKS5 浠ｇ悊銆?> 鑴氭湰鏂囦欢: D:\Windows_Terminal\git-proxy.ps1
 
 ---
 
-## 二、支持的协议
-
-仅支持 **SOCKS5**(其他代理如 HTTP/HTTPS 代理请改 git-proxy.ps1 中的协议名)。
-
+## 涓€銆佷负浠€涔堥渶瑕佽繖涓剼鏈?
+- 鍥藉唴璁块棶 GitHub / GitLab 缁忓父鍗￠】鎴栬秴鏃?- 璁剧疆鐜鍙橀噺 HTTPS_PROXY 浼氬奖鍝嶆墍鏈夊簲鐢?绮掑害澶矖
+- 鐩存帴鏀?git config 姣忔閮借鍐欎竴闀夸覆鍛戒护
+- 杩欎釜鑴氭湰**鍙敼 git 鍏ㄥ眬閰嶇疆**,涓嶅奖鍝嶇郴缁熷叾浠栧簲鐢?
 ---
 
-## 三、用法速查
+## 浜屻€佹敮鎸佺殑鍗忚
 
-### 1. 查看帮助
+浠呮敮鎸?**SOCKS5**(鍏朵粬浠ｇ悊濡?HTTP/HTTPS 浠ｇ悊璇锋敼 git-proxy.ps1 涓殑鍗忚鍚?銆?
+---
+
+## 涓夈€佺敤娉曢€熸煡
+
+### 1. 鏌ョ湅甯姪
 
 `powershell
 .\git-proxy.ps1 -Help
 `
 
-### 2. 设置代理(立即生效)
+### 2. 璁剧疆浠ｇ悊(绔嬪嵆鐢熸晥)
 
 `powershell
 .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -s
 `
 
-参数:
-- -h <IP> 代理服务器地址(IP 或域名)
-- -p <端口> 代理端口
-- -s 应用设置
+鍙傛暟:
+- -h <IP> 浠ｇ悊鏈嶅姟鍣ㄥ湴鍧€(IP 鎴栧煙鍚?
+- -p <绔彛> 浠ｇ悊绔彛
+- -s 搴旂敤璁剧疆
 
-**效果**:往 ~/.gitconfig 写入:
+**鏁堟灉**:寰€ ~/.gitconfig 鍐欏叆:
 `
 http.proxy  = socks5://127.0.0.1:1080
 https.proxy = socks5://127.0.0.1:1080
 `
 
-### 3. 撤销代理
+### 3. 鎾ら攢浠ｇ悊
 
 `powershell
 .\git-proxy.ps1 -u
 `
 
-**效果**:从 ~/.gitconfig 删除 http.proxy 和 https.proxy 两项。
-
-### 4. 查看当前代理状态
-
+**鏁堟灉**:浠?~/.gitconfig 鍒犻櫎 http.proxy 鍜?https.proxy 涓ら」銆?
+### 4. 鏌ョ湅褰撳墠浠ｇ悊鐘舵€?
 `powershell
 .\git-proxy.ps1 -c
 `
 
-**输出示例**:
+**杈撳嚭绀轰緥**:
 `
 [INFO]  Current Git proxy configuration:
   http.proxy  = socks5://127.0.0.1:1080
@@ -1023,39 +896,35 @@ https.proxy = socks5://127.0.0.1:1080
 [OK]    Proxy 127.0.0.1:1080 is reachable
 `
 
-会做一次 TCP 连通性测试(2 秒超时),告诉你代理端口是否通。
-
+浼氬仛涓€娆?TCP 杩為€氭€ф祴璇?2 绉掕秴鏃?,鍛婅瘔浣犱唬鐞嗙鍙ｆ槸鍚﹂€氥€?
 ---
 
-## 四、参数简写
-
-| 完整参数 | 简写 | 说明 |
+## 鍥涖€佸弬鏁扮畝鍐?
+| 瀹屾暣鍙傛暟 | 绠€鍐?| 璇存槑 |
 |----------|------|------|
-| -ProxyHost | -h | 代理 IP / 域名 |
-| -ProxyPort | -p | 代理端口 |
-| -Set | -s | 应用设置 |
-| -Unset | -u | 撤销代理 |
-| -Check | -c | 查看状态 |
-| -Help | — | 显示帮助 |
+| -ProxyHost | -h | 浠ｇ悊 IP / 鍩熷悕 |
+| -ProxyPort | -p | 浠ｇ悊绔彛 |
+| -Set | -s | 搴旂敤璁剧疆 |
+| -Unset | -u | 鎾ら攢浠ｇ悊 |
+| -Check | -c | 鏌ョ湅鐘舵€?|
+| -Help | 鈥?| 鏄剧ず甯姪 |
 
 ---
 
-## 五、常见场景
-
-### 场景 1:Clash / V2Ray 本地代理
-
-`powershell
-.\git-proxy.ps1 -h 127.0.0.1 -p 7890 -s   # Clash 默认 HTTP 端口 7890
-.\git-proxy.ps1 -h 127.0.0.1 -p 10808 -s  # V2RayN 默认 SOCKS5 端口 10808
-`
-
-### 场景 2:SSH 跳板机代理
+## 浜斻€佸父瑙佸満鏅?
+### 鍦烘櫙 1:Clash / V2Ray 鏈湴浠ｇ悊
 
 `powershell
-.\git-proxy.ps1 -h 10.10.10.135 -p 1080 -s
+.\git-proxy.ps1 -h 127.0.0.1 -p 7890 -s   # Clash 榛樿 HTTP 绔彛 7890
+.\git-proxy.ps1 -h 127.0.0.1 -p 10808 -s  # V2RayN 榛樿 SOCKS5 绔彛 10808
 `
 
-### 场景 3:临时拉一个 repo,完成后撤销
+### 鍦烘櫙 2:SSH 璺虫澘鏈轰唬鐞?
+`powershell
+.\git-proxy.ps1 -h 10.0.0.20 -p 1080 -s
+`
+
+### 鍦烘櫙 3:涓存椂鎷変竴涓?repo,瀹屾垚鍚庢挙閿€
 
 `powershell
 .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -s
@@ -1063,14 +932,14 @@ git clone https://github.com/xxx/repo.git
 .\git-proxy.ps1 -u
 `
 
-### 场景 4:在 Windows Terminal 中给常用代理做 alias
+### 鍦烘櫙 4:鍦?Windows Terminal 涓粰甯哥敤浠ｇ悊鍋?alias
 
-编辑 $PROFILE:
+缂栬緫 $PROFILE:
 `powershell
 notepad C:\Users\Administrator\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
 `
 
-添加:
+娣诲姞:
 `powershell
 function Set-GitProxy([string] = "127.0.0.1", [int] = 1080) {
     & "D:\Windows_Terminal\git-proxy.ps1" -h  -p  -s
@@ -1080,58 +949,55 @@ Set-Alias gpx Set-GitProxy
 Set-Alias gpu Unset-GitProxy
 `
 
-之后在任何目录:
+涔嬪悗鍦ㄤ换浣曠洰褰?
 `powershell
-gpx 127.0.0.1 1080      # 设置
-gpu                       # 撤销
+gpx 127.0.0.1 1080      # 璁剧疆
+gpu                       # 鎾ら攢
 `
 
 ---
 
-## 六、底层命令(无需脚本也能用)
+## 鍏€佸簳灞傚懡浠?鏃犻渶鑴氭湰涔熻兘鐢?
 
 `powershell
-# 设置
+# 璁剧疆
 git config --global http.proxy  socks5://127.0.0.1:1080
 git config --global https.proxy socks5://127.0.0.1:1080
 
-# 撤销
+# 鎾ら攢
 git config --global --unset http.proxy
 git config --global --unset https.proxy
 
-# 查看
+# 鏌ョ湅
 git config --global --get http.proxy
 git config --global --get https.proxy
 `
 
 ---
 
-## 七、踩坑提示
-
-| # | 问题 | 原因 / 解决 |
+## 涓冦€佽俯鍧戞彁绀?
+| # | 闂 | 鍘熷洜 / 瑙ｅ喅 |
 |---|------|------------|
-| 1 | 脚本提示「无法加载,因为在此系统上禁止运行脚本」 | PowerShell 默认 Restricted 策略,首次需执行: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned |
-| 2 | 代理设了但 git 还是慢 | 检查代理软件是否在监听端口;试 git-proxy.ps1 -c 看连通性 |
-| 3 | 只对当前项目生效而非全局 | 脚本用 --global,影响 ~/.gitconfig。想去掉就改 --global 为 --local |
-| 4 | ssh:// 协议的 git 仓库不走代理 | ssh 协议需要配 ~/.ssh/config 的 ProxyCommand,见下方 |
-| 5 | 撤销后还提示有代理 | 检查 ~/.gitconfig 里有没有 http.* 或 url.* 的 [url] 重写规则 |
+| 1 | 鑴氭湰鎻愮ず銆屾棤娉曞姞杞?鍥犱负鍦ㄦ绯荤粺涓婄姝㈣繍琛岃剼鏈€?| PowerShell 榛樿 Restricted 绛栫暐,棣栨闇€鎵ц: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned |
+| 2 | 浠ｇ悊璁句簡浣?git 杩樻槸鎱?| 妫€鏌ヤ唬鐞嗚蒋浠舵槸鍚﹀湪鐩戝惉绔彛;璇?git-proxy.ps1 -c 鐪嬭繛閫氭€?|
+| 3 | 鍙褰撳墠椤圭洰鐢熸晥鑰岄潪鍏ㄥ眬 | 鑴氭湰鐢?--global,褰卞搷 ~/.gitconfig銆傛兂鍘绘帀灏辨敼 --global 涓?--local |
+| 4 | ssh:// 鍗忚鐨?git 浠撳簱涓嶈蛋浠ｇ悊 | ssh 鍗忚闇€瑕侀厤 ~/.ssh/config 鐨?ProxyCommand,瑙佷笅鏂?|
+| 5 | 鎾ら攢鍚庤繕鎻愮ず鏈変唬鐞?| 妫€鏌?~/.gitconfig 閲屾湁娌℃湁 http.* 鎴?url.* 鐨?[url] 閲嶅啓瑙勫垯 |
 
-### SSH 协议的代理方案(脚本不支持,需手动)
+### SSH 鍗忚鐨勪唬鐞嗘柟妗?鑴氭湰涓嶆敮鎸?闇€鎵嬪姩)
 
-编辑 ~/.ssh/config:
+缂栬緫 ~/.ssh/config:
 `
 Host github.com
     ProxyCommand nc -X 5 -x 127.0.0.1:1080 %h %p
 `
 
 > 
-c 是 netcat。Windows Git Bash 自带;PowerShell 需另装。
-
+c 鏄?netcat銆俉indows Git Bash 鑷甫;PowerShell 闇€鍙﹁銆?
 ---
 
-## 八、脚本源码
-
-完整源码见 D:\Windows_Terminal\git-proxy.ps1,核心逻辑 12 行:
+## 鍏€佽剼鏈簮鐮?
+瀹屾暣婧愮爜瑙?D:\Windows_Terminal\git-proxy.ps1,鏍稿績閫昏緫 12 琛?
 
 `powershell
 git config --global http.proxy  "socks5://:"
@@ -1145,22 +1011,20 @@ git config --global --unset https.proxy
 
 ---
 
-**兼容性**:Windows Terminal ✅ PowerShell 5.1+ ✅ PowerShell 7 ✅
+**鍏煎鎬?*:Windows Terminal 鉁?PowerShell 5.1+ 鉁?PowerShell 7 鉁?
 
 
 ---
 
-# 全局调用配置
+# 鍏ㄥ眬璋冪敤閰嶇疆
 
-> 让 git-proxy 命令在任何目录、任何终端都能直接使用,无需 .\ 前缀。
-
+> 璁?git-proxy 鍛戒护鍦ㄤ换浣曠洰褰曘€佷换浣曠粓绔兘鑳界洿鎺ヤ娇鐢?鏃犻渶 .\ 鍓嶇紑銆?
 ---
 
-## 方式 1:加入 PATH(✅ 已配置,推荐)
+## 鏂瑰紡 1:鍔犲叆 PATH(鉁?宸查厤缃?鎺ㄨ崘)
 
-把 D:\Windows_Terminal 加入 **用户 PATH**,新开终端后即可全局调用 git-proxy。
-
-### 操作步骤(已自动完成)
+鎶?D:\Windows_Terminal 鍔犲叆 **鐢ㄦ埛 PATH**,鏂板紑缁堢鍚庡嵆鍙叏灞€璋冪敤 git-proxy銆?
+### 鎿嶄綔姝ラ(宸茶嚜鍔ㄥ畬鎴?
 
 `powershell
  = [System.Environment]::GetEnvironmentVariable("Path", "User")
@@ -1168,18 +1032,15 @@ git config --global --unset https.proxy
 [System.Environment]::SetEnvironmentVariable("Path", , "User")
 `
 
-**手动添加方法**:
-1. Win + R → 输入 sysdm.cpl → 「高级」选项卡
-2. 点击「环境变量」
-3. 在「用户变量」找到 Path,双击编辑
-4. 新建一行,填入 D:\Windows_Terminal
-5. 确定 → 确定
+**鎵嬪姩娣诲姞鏂规硶**:
+1. Win + R 鈫?杈撳叆 sysdm.cpl 鈫?銆岄珮绾с€嶉€夐」鍗?2. 鐐瑰嚮銆岀幆澧冨彉閲忋€?3. 鍦ㄣ€岀敤鎴峰彉閲忋€嶆壘鍒?Path,鍙屽嚮缂栬緫
+4. 鏂板缓涓€琛?濉叆 D:\Windows_Terminal
+5. 纭畾 鈫?纭畾
 
-> 注意:修改 PATH 后**必须新开一个 Windows Terminal 窗口**才生效。
+> 娉ㄦ剰:淇敼 PATH 鍚?*蹇呴』鏂板紑涓€涓?Windows Terminal 绐楀彛**鎵嶇敓鏁堛€?
+### 浣跨敤鏁堟灉
 
-### 使用效果
-
-任意目录、任意终端(WT/CMD/PowerShell/VSCode 终端):
+浠绘剰鐩綍銆佷换鎰忕粓绔?WT/CMD/PowerShell/VSCode 缁堢):
 
 `cmd
 git-proxy -Help
@@ -1188,19 +1049,18 @@ git-proxy -u
 git-proxy -c
 `
 
-无需 cd 到脚本目录,无需 .\ 前缀。
-
+鏃犻渶 cd 鍒拌剼鏈洰褰?鏃犻渶 .\ 鍓嶇紑銆?
 ---
 
-## 方式 2:PowerShell 函数 alias(仅 PowerShell)
+## 鏂瑰紡 2:PowerShell 鍑芥暟 alias(浠?PowerShell)
 
-编辑 PowerShell profile,添加函数:
+缂栬緫 PowerShell profile,娣诲姞鍑芥暟:
 
 `powershell
 notepad C:\Users\Administrator\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
 `
 
-写入:
+鍐欏叆:
 
 `powershell
 function git-proxy {
@@ -1209,140 +1069,128 @@ function git-proxy {
 Set-Alias gpx git-proxy
 `
 
-保存后**新开 PowerShell 窗口**,调用:
+淇濆瓨鍚?*鏂板紑 PowerShell 绐楀彛**,璋冪敤:
 `powershell
 git-proxy -h 127.0.0.1 -p 1080 -s
-gpx -u                                  # 简写
-`
+gpx -u                                  # 绠€鍐?`
 
-> 优点:可用 gpx 短名;可自定义更多行为。
-> 缺点:只在 PowerShell 里能用,CMD 不行。
-
+> 浼樼偣:鍙敤 gpx 鐭悕;鍙嚜瀹氫箟鏇村琛屼负銆?> 缂虹偣:鍙湪 PowerShell 閲岃兘鐢?CMD 涓嶈銆?
 ---
 
-## 方式 3:放进已有 PATH 目录(不推荐污染系统目录)
+## 鏂瑰紡 3:鏀捐繘宸叉湁 PATH 鐩綍(涓嶆帹鑽愭薄鏌撶郴缁熺洰褰?
 
 `powershell
-# 复制到系统 PATH 目录(需要管理员)
+# 澶嶅埗鍒扮郴缁?PATH 鐩綍(闇€瑕佺鐞嗗憳)
 copy D:\Windows_Terminal\git-proxy.cmd C:\Windows\System32\
 `
 
-不推荐,会污染系统目录。
-
+涓嶆帹鑽?浼氭薄鏌撶郴缁熺洰褰曘€?
 ---
 
-## 推荐组合
+## 鎺ㄨ崘缁勫悎
 
-**方式 1 + 方式 2 同时配置**:
+**鏂瑰紡 1 + 鏂瑰紡 2 鍚屾椂閰嶇疆**:
 
-- CMD / Git Bash / 旧终端:用 git-proxy 命令
-- PowerShell:用 git-proxy 或别名 gpx
+- CMD / Git Bash / 鏃х粓绔?鐢?git-proxy 鍛戒护
+- PowerShell:鐢?git-proxy 鎴栧埆鍚?gpx
 
-两者互不冲突,功能完全一致。
-
+涓よ€呬簰涓嶅啿绐?鍔熻兘瀹屽叏涓€鑷淬€?
 ---
 
-## 验证方法
+## 楠岃瘉鏂规硶
 
-新开一个 Windows Terminal 窗口,执行:
+鏂板紑涓€涓?Windows Terminal 绐楀彛,鎵ц:
 
 `powershell
-where.exe git-proxy     # CMD 验证
-Get-Command git-proxy    # PowerShell 验证
+where.exe git-proxy     # CMD 楠岃瘉
+Get-Command git-proxy    # PowerShell 楠岃瘉
 `
 
-应返回:
+搴旇繑鍥?
 `
 D:\Windows_Terminal\git-proxy.cmd
 `
 
-之后任何目录都可:
+涔嬪悗浠讳綍鐩綍閮藉彲:
 `powershell
-git-proxy -h 10.10.10.135 -p 1080 -s    # 设置
-git-proxy -c                              # 查看
-git-proxy -u                              # 撤销
+git-proxy -h 10.0.0.20 -p 1080 -s    # 璁剧疆
+git-proxy -c                              # 鏌ョ湅
+git-proxy -u                              # 鎾ら攢
 `
 
 ---
 
-## 故障排查
+## 鏁呴殰鎺掓煡
 
-| 问题 | 解决 |
+| 闂 | 瑙ｅ喅 |
 |------|------|
-| git-proxy 不是内部或外部命令 | PATH 没生效,**重新打开终端** |
-| 改 PATH 后仍找不到 | 检查拼写:必须是 D:\Windows_Terminal,带分号分隔 |
-| 脚本能跑但参数不生效 | CMD 下参数要用 -h IP -p 端口 -s 三段写,不能合并 |
-| 提示执行策略错误 | 第一次运行:Set-ExecutionPolicy -Scope CurrentUser RemoteSigned |
+| git-proxy 涓嶆槸鍐呴儴鎴栧閮ㄥ懡浠?| PATH 娌＄敓鏁?**閲嶆柊鎵撳紑缁堢** |
+| 鏀?PATH 鍚庝粛鎵句笉鍒?| 妫€鏌ユ嫾鍐?蹇呴』鏄?D:\Windows_Terminal,甯﹀垎鍙峰垎闅?|
+| 鑴氭湰鑳借窇浣嗗弬鏁颁笉鐢熸晥 | CMD 涓嬪弬鏁拌鐢?-h IP -p 绔彛 -s 涓夋鍐?涓嶈兘鍚堝苟 |
+| 鎻愮ず鎵ц绛栫暐閿欒 | 绗竴娆¤繍琛?Set-ExecutionPolicy -Scope CurrentUser RemoteSigned |
 
 ---
 
-**当前状态**:✅ 已配置方式 1 + 已创建 D:\Windows_Terminal\git-proxy.cmd 包装器
+**褰撳墠鐘舵€?*:鉁?宸查厤缃柟寮?1 + 宸插垱寤?D:\Windows_Terminal\git-proxy.cmd 鍖呰鍣?
 
 
 ---
 
-# SSH 密钥登录完整指南
+# SSH 瀵嗛挜鐧诲綍瀹屾暣鎸囧崡
 
-> Windows Terminal 中配置 SSH 公私钥登录,免密码连服务器,顺便讲讲排查"明明传了公钥还是要密码"的常见坑。
-
+> Windows Terminal 涓厤缃?SSH 鍏閽ョ櫥褰?鍏嶅瘑鐮佽繛鏈嶅姟鍣?椤轰究璁茶鎺掓煡"鏄庢槑浼犱簡鍏挜杩樻槸瑕佸瘑鐮?鐨勫父瑙佸潙銆?
 ---
 
-## 一、为什么用密钥登录
+## 涓€銆佷负浠€涔堢敤瀵嗛挜鐧诲綍
 
-- 比密码安全(密码可能被爆破,密钥几乎不可能)
-- 不用每次敲密码
-- 可以配多个服务器共用一把密钥
-- 配合 ssh-agent 连 GitHub / GitLab 都免密
-
+- 姣斿瘑鐮佸畨鍏?瀵嗙爜鍙兘琚垎鐮?瀵嗛挜鍑犱箮涓嶅彲鑳?
+- 涓嶇敤姣忔鏁插瘑鐮?- 鍙互閰嶅涓湇鍔″櫒鍏辩敤涓€鎶婂瘑閽?- 閰嶅悎 ssh-agent 杩?GitHub / GitLab 閮藉厤瀵?
 ---
 
-## 二、生成密钥对
+## 浜屻€佺敓鎴愬瘑閽ュ
 
-### 现代推荐:ED25519
+### 鐜颁唬鎺ㄨ崘:ED25519
 
 `powershell
 ssh-keygen -t ed25519 -f "C:\Users\Administrator\.ssh\id_ed25519" -C "your_email@example.com"
 `
 
-- 算法新、密钥短(~68 字节)、速度快、安全性高
-- OpenSSH 6.5+ 都支持(2014 年起,所有现代服务器都行)
+- 绠楁硶鏂般€佸瘑閽ョ煭(~68 瀛楄妭)銆侀€熷害蹇€佸畨鍏ㄦ€ч珮
+- OpenSSH 6.5+ 閮芥敮鎸?2014 骞磋捣,鎵€鏈夌幇浠ｆ湇鍔″櫒閮借)
 
-### 兼容老服务器:RSA 4096
+### 鍏煎鑰佹湇鍔″櫒:RSA 4096
 
 `powershell
 ssh-keygen -t rsa -b 4096 -f "C:\Users\Administrator\.ssh\id_rsa" -C "your_email@example.com"
 `
 
-### 交互过程
+### 浜や簰杩囩▼
 
 `
-Enter passphrase (empty for no passphrase):  # 强烈建议设密码,防私钥泄露
-Enter same passphrase again:
+Enter passphrase (empty for no passphrase):  # 寮虹儓寤鸿璁惧瘑鐮?闃茬閽ユ硠闇?Enter same passphrase again:
 Your identification has been saved in C:\Users\xxx\.ssh\id_ed25519
 Your public key has been saved in C:\Users\xxx\.ssh\id_ed25519.pub
 `
 
-### 私钥安全建议
+### 绉侀挜瀹夊叏寤鸿
 
 `powershell
-# Windows 上,私钥权限默认就只有当前用户能读,问题不大
-# 但如果用过 Git Bash,可能权限被改坏,需要修复
-icacls "C:\Users\Administrator\.ssh\id_ed25519" /inheritance:r /grant:r ""
+# Windows 涓?绉侀挜鏉冮檺榛樿灏卞彧鏈夊綋鍓嶇敤鎴疯兘璇?闂涓嶅ぇ
+# 浣嗗鏋滅敤杩?Git Bash,鍙兘鏉冮檺琚敼鍧?闇€瑕佷慨澶?icacls "C:\Users\Administrator\.ssh\id_ed25519" /inheritance:r /grant:r ""
 `
 
 ---
 
-## 三、把公钥传到服务器
-
-### 方法 1:手动复制(最稳)
+## 涓夈€佹妸鍏挜浼犲埌鏈嶅姟鍣?
+### 鏂规硶 1:鎵嬪姩澶嶅埗(鏈€绋?
 
 `powershell
-# 1. 复制公钥内容
+# 1. 澶嶅埗鍏挜鍐呭
 Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
-# 输出:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your_email@example.com
+# 杈撳嚭:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your_email@example.com
 `
 
-然后在服务器上:
+鐒跺悗鍦ㄦ湇鍔″櫒涓?
 
 `ash
 mkdir -p ~/.ssh
@@ -1351,33 +1199,32 @@ echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..." >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 `
 
-### 方法 2:用 ssh-copy-id(Linux/Mac 才有)
+### 鏂规硶 2:鐢?ssh-copy-id(Linux/Mac 鎵嶆湁)
 
 `ash
-ssh-copy-id -i ~/.ssh/id_ed25519.pub yao@10.10.10.186
+ssh-copy-id -i ~/.ssh/id_ed25519.pub yao@10.0.0.10
 `
 
-> Windows 没有 ssh-copy-id。可以从 Git Bash 调用,或用方法 1。
-
-### 方法 3:用 PowerShell 自动传(需先能密码登录一次)
+> Windows 娌℃湁 ssh-copy-id銆傚彲浠ヤ粠 Git Bash 璋冪敤,鎴栫敤鏂规硶 1銆?
+### 鏂规硶 3:鐢?PowerShell 鑷姩浼?闇€鍏堣兘瀵嗙爜鐧诲綍涓€娆?
 
 `powershell
-# 把公钥内容作为密码传入(不安全但方便)
+# 鎶婂叕閽ュ唴瀹逛綔涓哄瘑鐮佷紶鍏?涓嶅畨鍏ㄤ絾鏂逛究)
  = Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
-ssh yao@10.10.10.186 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+ssh yao@10.0.0.10 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 `
 
 ---
 
-## 四、配置 ~/.ssh/config(强烈推荐)
+## 鍥涖€侀厤缃?~/.ssh/config(寮虹儓鎺ㄨ崘)
 
-把常用服务器写进配置,以后一行命令连:
+鎶婂父鐢ㄦ湇鍔″櫒鍐欒繘閰嶇疆,浠ュ悗涓€琛屽懡浠よ繛:
 
 `powershell
 notepad C:\Users\Administrator\.ssh\config
 `
 
-示例内容:
+绀轰緥鍐呭:
 
 `
 # GitHub
@@ -1385,39 +1232,36 @@ Host github.com
     User git
     IdentityFile ~/.ssh/id_ed25519
 
-# 工作服务器
-Host work
-    HostName 10.10.10.186
+# 宸ヤ綔鏈嶅姟鍣?Host work
+    HostName 10.0.0.10
     User yao
     Port 22
     IdentityFile ~/.ssh/id_ed25519
     ServerAliveInterval 60
     ServerAliveCountMax 3
 
-# 跳板机
-Host jump
+# 璺虫澘鏈?Host jump
     HostName jump.example.com
     User myuser
     Port 2222
     IdentityFile ~/.ssh/id_ed25519
     ProxyCommand none
 
-# 全局配置(所有连接生效)
+# 鍏ㄥ眬閰嶇疆(鎵€鏈夎繛鎺ョ敓鏁?
 Host *
     AddKeysToAgent yes
     ServerAliveInterval 60
     ServerAliveCountMax 3
 `
 
-之后:
+涔嬪悗:
 
 `powershell
-ssh work                   # 直接连,不用输 yao@10.10.10.186
-ssh work "ls -la"          # 直接跑命令
-scp file.txt work:~/       # 直接 scp
+ssh work                   # 鐩存帴杩?涓嶇敤杈?yao@10.0.0.10
+ssh work "ls -la"          # 鐩存帴璺戝懡浠?scp file.txt work:~/       # 鐩存帴 scp
 `
 
-Windows 上记得给 config 文件设权限,避免 ssh 警告:
+Windows 涓婅寰楃粰 config 鏂囦欢璁炬潈闄?閬垮厤 ssh 璀﹀憡:
 
 `powershell
 icacls "C:\Users\Administrator\.ssh\config" /inheritance:r /grant:r ""
@@ -1425,19 +1269,17 @@ icacls "C:\Users\Administrator\.ssh\config" /inheritance:r /grant:r ""
 
 ---
 
-## 五、测试密钥登录
-
+## 浜斻€佹祴璇曞瘑閽ョ櫥褰?
 `powershell
-# 详细日志模式(第一次调试用)
+# 璇︾粏鏃ュ織妯″紡(绗竴娆¤皟璇曠敤)
 ssh -v work
 
-# 关键看这两行:
+# 鍏抽敭鐪嬭繖涓よ:
 # debug1: Offering public key: ED25519 SHA256:xxxxx
-# debug1: Authentication succeeded (publickey).   ← 成功
-# debug1: Permission denied (publickey,password). ← 失败,见下文排查
-`
+# debug1: Authentication succeeded (publickey).   鈫?鎴愬姛
+# debug1: Permission denied (publickey,password). 鈫?澶辫触,瑙佷笅鏂囨帓鏌?`
 
-确认成功:
+纭鎴愬姛:
 
 `powershell
 ssh work "echo 'OK, key login works without password'"
@@ -1445,96 +1287,90 @@ ssh work "echo 'OK, key login works without password'"
 
 ---
 
-## 六、密钥登录失败的排查清单
+## 鍏€佸瘑閽ョ櫥褰曞け璐ョ殑鎺掓煡娓呭崟
 
-### 症状:Permission denied (publickey,password) 或继续要求密码
+### 鐥囩姸:Permission denied (publickey,password) 鎴栫户缁姹傚瘑鐮?
+鎸夎繖涓『搴忔帓鏌?
 
-按这个顺序排查:
-
-#### 1. 服务器端 authorized_keys 内容是否正确
+#### 1. 鏈嶅姟鍣ㄧ authorized_keys 鍐呭鏄惁姝ｇ‘
 
 `ash
-# 在服务器上
-cat ~/.ssh/authorized_keys
+# 鍦ㄦ湇鍔″櫒涓?cat ~/.ssh/authorized_keys
 `
 
-必须是**一整行**,内容跟 id_ed25519.pub 完全一致:
+蹇呴』鏄?*涓€鏁磋**,鍐呭璺?id_ed25519.pub 瀹屽叏涓€鑷?
 
 `
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILxSE/jWjOFjtePtlne17BTbNPJ0wYCIAfSxy7G/bBJs Administrator@DESKTOP-SPOC18S
 `
 
-常见错误:
-- 复制时多/少了空格
-- Windows 换行符 \r\n 被复制进去了(在 Linux 上 \r 也会被读成公钥一部分)
-- 公钥末尾的注释邮箱被截断
-- **粘贴时多了一行**(每行一个公钥,顺序无所谓)
+甯歌閿欒:
+- 澶嶅埗鏃跺/灏戜簡绌烘牸
+- Windows 鎹㈣绗?\r\n 琚鍒惰繘鍘讳簡(鍦?Linux 涓?\r 涔熶細琚鎴愬叕閽ヤ竴閮ㄥ垎)
+- 鍏挜鏈熬鐨勬敞閲婇偖绠辫鎴柇
+- **绮樿创鏃跺浜嗕竴琛?*(姣忚涓€涓叕閽?椤哄簭鏃犳墍璋?
 
-**重新生成的命令(在服务器上)**:
+**閲嶆柊鐢熸垚鐨勫懡浠?鍦ㄦ湇鍔″櫒涓?**:
 
 `ash
 yao@server:~$ nano ~/.ssh/authorized_keys
-# 清空,粘贴完整一行,Ctrl+O 保存,Ctrl+X 退出
-`
+# 娓呯┖,绮樿创瀹屾暣涓€琛?Ctrl+O 淇濆瓨,Ctrl+X 閫€鍑?`
 
-> 现在你装了 nano,可以用了。
+> 鐜板湪浣犺浜?nano,鍙互鐢ㄤ簡銆?
+#### 3. 鏉冮檺闂(90% 鐨勫潙鍦ㄨ繖閲?
 
-#### 3. 权限问题(90% 的坑在这里)
-
-服务端 SSH daemon **极其挑剔**文件权限:
+鏈嶅姟绔?SSH daemon **鏋佸叾鎸戝墧**鏂囦欢鏉冮檺:
 
 `ash
 yao@server:~$ ls -la ~/.ssh/
-# 必须严格:
+# 蹇呴』涓ユ牸:
 # drwx------ (700)  .ssh
 # -rw------- (600)  authorized_keys
-# -rw------- (600)  id_ed25519  (如果是私钥在服务器)
+# -rw------- (600)  id_ed25519  (濡傛灉鏄閽ュ湪鏈嶅姟鍣?
 
 yao@server:~$ chmod 700 ~/.ssh
 yao@server:~$ chmod 600 ~/.ssh/authorized_keys
 yao@server:~$ chown yao:yao ~/.ssh -R
 `
 
-#### 4. sshd_config 是否允许公钥认证
+#### 4. sshd_config 鏄惁鍏佽鍏挜璁よ瘉
 
 `ash
 yao@server:~$ sudo grep -E "^(PubkeyAuthentication|PermitRootLogin|AuthorizedKeysFile)" /etc/ssh/sshd_config
 `
 
-输出应该是:
+杈撳嚭搴旇鏄?
 
 `
 PubkeyAuthentication yes
-PermitRootLogin prohibit-password  # 或 yes
+PermitRootLogin prohibit-password  # 鎴?yes
 AuthorizedKeysFile .ssh/authorized_keys
 `
 
-如果 PubkeyAuthentication 是 
-o,改回来:
+濡傛灉 PubkeyAuthentication 鏄?
+o,鏀瑰洖鏉?
 
 `ash
 yao@server:~$ sudo sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 yao@server:~$ sudo systemctl restart sshd
 `
 
-#### 5. 客户端用的是哪个密钥
+#### 5. 瀹㈡埛绔敤鐨勬槸鍝釜瀵嗛挜
 
 `powershell
-# 看 SSH 实际尝试的密钥
-ssh -v work 2>&1 | Select-String "Offering public key"
+# 鐪?SSH 瀹為檯灏濊瘯鐨勫瘑閽?ssh -v work 2>&1 | Select-String "Offering public key"
 `
 
-如果没看到,可能是 config 文件 IdentityFile 写错了路径。
-
-#### 6. 服务器日志(终极排查)
+濡傛灉娌＄湅鍒?鍙兘鏄?config 鏂囦欢 IdentityFile 鍐欓敊浜嗚矾寰勩€?
+#### 6. 鏈嶅姟鍣ㄦ棩蹇?缁堟瀬鎺掓煡)
 
 `ash
-# 服务器上
+# 鏈嶅姟鍣ㄤ笂
 yao@server:~$ sudo tail -f /var/log/auth.log    # Debian/Ubuntu
 yao@server:~$ sudo tail -f /var/log/secure      # CentOS/RHEL
 `
 
-然后在客户端尝试连接,日志会显示具体拒绝原因,比如:
+鐒跺悗鍦ㄥ鎴风灏濊瘯杩炴帴,鏃ュ織浼氭樉绀哄叿浣撴嫆缁濆師鍥?姣斿:
 
 `
 Authentication refused: bad ownership or modes for file /home/yao/.ssh/authorized_keys
@@ -1542,74 +1378,69 @@ Authentication refused: bad ownership or modes for file /home/yao/.ssh/authorize
 
 ---
 
-## 七、ssh-agent:免输密钥密码
+## 涓冦€乻sh-agent:鍏嶈緭瀵嗛挜瀵嗙爜
 
-如果私钥设了 passphrase(强推),可以配置 ssh-agent 缓存,免每次输入:
+濡傛灉绉侀挜璁句簡 passphrase(寮烘帹),鍙互閰嶇疆 ssh-agent 缂撳瓨,鍏嶆瘡娆¤緭鍏?
 
 `powershell
-# 启动 ssh-agent 服务(Windows 自带)
+# 鍚姩 ssh-agent 鏈嶅姟(Windows 鑷甫)
 Set-Service ssh-agent -StartupType Automatic
 Start-Service ssh-agent
 
-# 添加私钥(只需做一次,会问一次 passphrase)
+# 娣诲姞绉侀挜(鍙渶鍋氫竴娆?浼氶棶涓€娆?passphrase)
 ssh-add C:\Users\Administrator\.ssh\id_ed25519
 
-# 之后 ssh work 都不用输密码了
-`
+# 涔嬪悗 ssh work 閮戒笉鐢ㄨ緭瀵嗙爜浜?`
 
 ---
 
-## 八、文件传输配合密钥
-
-之前装的 scp / sftp 会自动用 ~/.ssh/config 里的密钥,直接免密:
+## 鍏€佹枃浠朵紶杈撻厤鍚堝瘑閽?
+涔嬪墠瑁呯殑 scp / sftp 浼氳嚜鍔ㄧ敤 ~/.ssh/config 閲岀殑瀵嗛挜,鐩存帴鍏嶅瘑:
 
 `powershell
-# 上传文件
+# 涓婁紶鏂囦欢
 scp test.txt work:~/test.txt
 
-# 下载
+# 涓嬭浇
 scp work:~/data.csv .
 
-# 整个目录
+# 鏁翠釜鐩綍
 scp -r myproject/ work:~/myproject/
 
-# 交互式 SFTP
+# 浜や簰寮?SFTP
 sftp work
 `
 
 ---
 
-## 九、多服务器管理实践
-
-### 一把密钥走天下
+## 涔濄€佸鏈嶅姟鍣ㄧ鐞嗗疄璺?
+### 涓€鎶婂瘑閽ヨ蛋澶╀笅
 
 `
 ~/.ssh/
-├── id_ed25519           # 私钥
-├── id_ed25519.pub       # 公钥,放到所有服务器
-├── config               # 服务器清单
-└── known_hosts          # 已信任服务器指纹
+鈹溾攢鈹€ id_ed25519           # 绉侀挜
+鈹溾攢鈹€ id_ed25519.pub       # 鍏挜,鏀惧埌鎵€鏈夋湇鍔″櫒
+鈹溾攢鈹€ config               # 鏈嶅姟鍣ㄦ竻鍗?鈹斺攢鈹€ known_hosts          # 宸蹭俊浠绘湇鍔″櫒鎸囩汗
 `
 
-把公钥加到所有服务器:
+鎶婂叕閽ュ姞鍒版墍鏈夋湇鍔″櫒:
 
 `ash
-# 同一公钥,推到多个服务器
-for host in server1 server2 server3; do
+# 鍚屼竴鍏挜,鎺ㄥ埌澶氫釜鏈嶅姟鍣?for host in server1 server2 server3; do
     ssh-copy-id -i ~/.ssh/id_ed25519.pub yao@System.Management.Automation.Internal.Host.InternalHost
 done
 `
 
-### 不同服务器用不同密钥(更安全)
+### 涓嶅悓鏈嶅姟鍣ㄧ敤涓嶅悓瀵嗛挜(鏇村畨鍏?
 
 `
 ~/.ssh/
-├── id_ed25519_work
-├── id_ed25519_personal
-├── id_ed25519_github
+鈹溾攢鈹€ id_ed25519_work
+鈹溾攢鈹€ id_ed25519_personal
+鈹溾攢鈹€ id_ed25519_github
 `
 
-config 文件分别指定:
+config 鏂囦欢鍒嗗埆鎸囧畾:
 
 `
 Host github.com
@@ -1621,156 +1452,147 @@ Host work
 
 ---
 
-## 十、速查表
-
+## 鍗併€侀€熸煡琛?
 `powershell
-# 生成密钥
-ssh-keygen -t ed25519 -f "C:\Users\Administrator\.ssh\id_ed25519" -C "备注"
+# 鐢熸垚瀵嗛挜
+ssh-keygen -t ed25519 -f "C:\Users\Administrator\.ssh\id_ed25519" -C "澶囨敞"
 
-# 显示公钥
+# 鏄剧ず鍏挜
 Get-Content "C:\Users\Administrator\.ssh\id_ed25519.pub"
 
-# 添加到 ssh-agent(免输 passphrase)
+# 娣诲姞鍒?ssh-agent(鍏嶈緭 passphrase)
 ssh-add C:\Users\Administrator\.ssh\id_ed25519
 
-# 测试连接
+# 娴嬭瘯杩炴帴
 ssh -v work
 
-# 传文件
-scp file.txt work:~/
+# 浼犳枃浠?scp file.txt work:~/
 sftp work
 
-# 编辑 config
+# 缂栬緫 config
 code "C:\Users\Administrator\.ssh\config"
 `
 
 ---
 
-## 十一、常见错误速查
+## 鍗佷竴銆佸父瑙侀敊璇€熸煡
 
-| 错误 | 原因 | 解决 |
+| 閿欒 | 鍘熷洜 | 瑙ｅ喅 |
 |------|------|------|
-| Permission denied (publickey) | 公钥认证失败 | 检查 uthorized_keys 内容、权限 |
-| 提示 Bad owner or permissions on ~/.ssh/config | Windows 上权限过宽 | icacls config /inheritance:r /grant:r "" |
-| Too many authentication failures | 配置了多个 IdentityFile | 在 config 用 -o IdentitiesOnly=yes |
-| sign_and_send_pubkey: signing failed | ssh-agent 没启或没加私钥 | ssh-add 一下 |
-| Host key verification failed | 服务器重装过/密钥变了 | ssh-keygen -R work 删旧指纹再连 |
-| Connection timed out | 防火墙/网络问题 | Test-NetConnection work -Port 22 |
-| 复制公钥时多了一行,导致第二行内容被当成密码 | 复制粘贴问题 | 用 nano 编辑确认只有一行 |
+| Permission denied (publickey) | 鍏挜璁よ瘉澶辫触 | 妫€鏌?uthorized_keys 鍐呭銆佹潈闄?|
+| 鎻愮ず Bad owner or permissions on ~/.ssh/config | Windows 涓婃潈闄愯繃瀹?| icacls config /inheritance:r /grant:r "" |
+| Too many authentication failures | 閰嶇疆浜嗗涓?IdentityFile | 鍦?config 鐢?-o IdentitiesOnly=yes |
+| sign_and_send_pubkey: signing failed | ssh-agent 娌″惎鎴栨病鍔犵閽?| ssh-add 涓€涓?|
+| Host key verification failed | 鏈嶅姟鍣ㄩ噸瑁呰繃/瀵嗛挜鍙樹簡 | ssh-keygen -R work 鍒犳棫鎸囩汗鍐嶈繛 |
+| Connection timed out | 闃茬伀澧?缃戠粶闂 | Test-NetConnection work -Port 22 |
+| 澶嶅埗鍏挜鏃跺浜嗕竴琛?瀵艰嚧绗簩琛屽唴瀹硅褰撴垚瀵嗙爜 | 澶嶅埗绮樿创闂 | 鐢?nano 缂栬緫纭鍙湁涓€琛?|
 
 ---
 
-**适用**:OpenSSH 7.7+ (Windows 10 1809 自带)
+**閫傜敤**:OpenSSH 7.7+ (Windows 10 1809 鑷甫)
 
 
 ---
 
-# Debian / Linux 版 git-proxy 部署实战
+# Debian / Linux 鐗?git-proxy 閮ㄧ讲瀹炴垬
 
-> 在远端 Debian 13 服务器(10.10.10.186,用户 yao)上部署 git-proxy bash 版的完整过程 + 一个隐蔽坑。
-
+> 鍦ㄨ繙绔?Debian 13 鏈嶅姟鍣?10.0.0.10,鐢ㄦ埛 yao)涓婇儴缃?git-proxy bash 鐗堢殑瀹屾暣杩囩▼ + 涓€涓殣钄藉潙銆?
 ---
 
-## 一、与 Windows 版的区别
+## 涓€銆佷笌 Windows 鐗堢殑鍖哄埆
 
-| 项目 | Windows 版 | Debian 版 |
+| 椤圭洰 | Windows 鐗?| Debian 鐗?|
 |------|------------|-----------|
-| 脚本语言 | PowerShell | Bash |
-| 文件 | git-proxy.ps1 | git-proxy-debian.sh |
-| 安装位置 | PATH 任意目录 | /home/<user>/bin/ (用户级) 或 /usr/local/bin/ (需要 sudo) |
-| 调用方式 | git-proxy | git-proxy (要 ~/bin 在 PATH) |
-| Git 路径 | 自动 (PowerShell 知道) | **需要显式处理**(见下文踩坑) |
+| 鑴氭湰璇█ | PowerShell | Bash |
+| 鏂囦欢 | git-proxy.ps1 | git-proxy-debian.sh |
+| 瀹夎浣嶇疆 | PATH 浠绘剰鐩綍 | /home/<user>/bin/ (鐢ㄦ埛绾? 鎴?/usr/local/bin/ (闇€瑕?sudo) |
+| 璋冪敤鏂瑰紡 | git-proxy | git-proxy (瑕?~/bin 鍦?PATH) |
+| Git 璺緞 | 鑷姩 (PowerShell 鐭ラ亾) | **闇€瑕佹樉寮忓鐞?*(瑙佷笅鏂囪俯鍧? |
 
 ---
 
-## 二、部署步骤
-
-### 1. 上传脚本到服务器
+## 浜屻€侀儴缃叉楠?
+### 1. 涓婁紶鑴氭湰鍒版湇鍔″櫒
 
 `powershell
-# Windows 端执行
-scp D:\Windows_Terminal\git-proxy-debian.sh yao@10.10.10.186:/tmp/git-proxy.sh
+# Windows 绔墽琛?scp D:\Windows_Terminal\git-proxy-debian.sh yao@10.0.0.10:/tmp/git-proxy.sh
 `
 
-### 2. 安装到用户目录(无需 sudo)
+### 2. 瀹夎鍒扮敤鎴风洰褰?鏃犻渶 sudo)
 
 `ash
-# 服务器端
+# 鏈嶅姟鍣ㄧ
 mkdir -p ~/bin
 mv /tmp/git-proxy.sh ~/bin/git-proxy
 chmod +x ~/bin/git-proxy
 `
 
-### 3. 配置 PATH
+### 3. 閰嶇疆 PATH
 
-SSH non-interactive shell 默认**不**读取 ~/.bashrc,所以最好同时改两个文件:
+SSH non-interactive shell 榛樿**涓?*璇诲彇 ~/.bashrc,鎵€浠ユ渶濂藉悓鏃舵敼涓や釜鏂囦欢:
 
 `ash
-# 交互式 shell 用 (SSH 登录后)
+# 浜や簰寮?shell 鐢?(SSH 鐧诲綍鍚?
 echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc
 
-# 非交互式 shell 用 (SSH 直接执行命令)
+# 闈炰氦浜掑紡 shell 鐢?(SSH 鐩存帴鎵ц鍛戒护)
 echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.profile
 `
 
-### 4. 测试
+### 4. 娴嬭瘯
 
 `ash
-# 登录后
-git-proxy --help
+# 鐧诲綍鍚?git-proxy --help
 
-# SSH 一行执行
-ssh yao@10.10.10.186 "git-proxy --help | head -3"
+# SSH 涓€琛屾墽琛?ssh yao@10.0.0.10 "git-proxy --help | head -3"
 `
 
 ---
 
-## 三、隐蔽踩坑:Git not found 错误
+## 涓夈€侀殣钄借俯鍧?Git not found 閿欒
 
-### 现象
+### 鐜拌薄
 
 `ash
 yao@debian:~$ git-proxy -t
 [ERROR] Git not found. Please install: sudo apt install git
 `
 
-但其实 git 明明装在 /usr/bin/git:
+浣嗗叾瀹?git 鏄庢槑瑁呭湪 /usr/bin/git:
 
 `ash
 yao@debian:~$ git --version
 git version 2.47.3
 `
 
-### 根因分析
+### 鏍瑰洜鍒嗘瀽
 
-**SSH non-interactive shell 的 PATH 不包含 /usr/bin**!
+**SSH non-interactive shell 鐨?PATH 涓嶅寘鍚?/usr/bin**!
 
-排查过程:
+鎺掓煡杩囩▼:
 
 `ash
-# 1. SSH 直接执行命令(非交互 shell)
-yao@debian:~$ ssh yao@10.10.10.186 "echo \"
-/usr/local/bin:/usr/bin   # 这看起来是 OK 的
-
-# 2. 但用 sudo 时(会重置 PATH)
-yao@debian:~$ ssh yao@10.10.10.186 "sudo env"
+# 1. SSH 鐩存帴鎵ц鍛戒护(闈炰氦浜?shell)
+yao@debian:~$ ssh yao@10.0.0.10 "echo \"
+/usr/local/bin:/usr/bin   # 杩欑湅璧锋潵鏄?OK 鐨?
+# 2. 浣嗙敤 sudo 鏃?浼氶噸缃?PATH)
+yao@debian:~$ ssh yao@10.0.0.10 "sudo env"
 # secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-# (默认 PATH 反而是完整的)
+# (榛樿 PATH 鍙嶈€屾槸瀹屾暣鐨?
 
-# 3. 真正诡异的情况:某些容器/minimal Debian 安装
-# 用户家目录下 .bashrc / .profile 没被读取
-# 或者 PATH 被 systemd / PAM 重置成空 / 最小值
-`
+# 3. 鐪熸璇″紓鐨勬儏鍐?鏌愪簺瀹瑰櫒/minimal Debian 瀹夎
+# 鐢ㄦ埛瀹剁洰褰曚笅 .bashrc / .profile 娌¤璇诲彇
+# 鎴栬€?PATH 琚?systemd / PAM 閲嶇疆鎴愮┖ / 鏈€灏忓€?`
 
-### 修复方案(已合入 git-proxy-debian.sh)
+### 淇鏂规(宸插悎鍏?git-proxy-debian.sh)
 
-脚本内部做了三件事,不再依赖外部 PATH:
+鑴氭湰鍐呴儴鍋氫簡涓変欢浜?涓嶅啀渚濊禆澶栭儴 PATH:
 
 `ash
-# 1. 强制 export 标准 PATH
+# 1. 寮哄埗 export 鏍囧噯 PATH
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\"
 
-# 2. 按常见路径硬编码查找 git
+# 2. 鎸夊父瑙佽矾寰勭‖缂栫爜鏌ユ壘 git
 GIT_CMD=""
 for p in /usr/bin/git /usr/local/bin/git /bin/git; do
     if [[ -x "\" ]]; then
@@ -1779,195 +1601,180 @@ for p in /usr/bin/git /usr/local/bin/git /bin/git; do
     fi
 done
 
-# 3. 最后回退到 command -v
+# 3. 鏈€鍚庡洖閫€鍒?command -v
 if [[ -z "\" ]]; then
     GIT_CMD=\
 fi
 
-# 4. 所有 git 调用都改成 \
+# 4. 鎵€鏈?git 璋冪敤閮芥敼鎴?\
 \ config --global http.proxy "..."
 `
 
-### 验证脚本自给自足
+### 楠岃瘉鑴氭湰鑷粰鑷冻
 
 `ash
-# 模拟最小 PATH 环境
+# 妯℃嫙鏈€灏?PATH 鐜
 yao@debian:~$ env -i HOME=/home/yao PATH=/tmp /home/yao/bin/git-proxy --help
 Git Proxy Manager (HTTP / HTTPS / SOCKS5) - Debian/Linux
 ...
-# 仍然正常工作!说明脚本不依赖外部 PATH
+# 浠嶇劧姝ｅ父宸ヤ綔!璇存槑鑴氭湰涓嶄緷璧栧閮?PATH
 `
 
 ---
 
-## 四、完整的 Debian 安装脚本(可直接复制)
+## 鍥涖€佸畬鏁寸殑 Debian 瀹夎鑴氭湰(鍙洿鎺ュ鍒?
 
 `ash
 #!/bin/bash
-# install-git-proxy.sh - 一键安装脚本
-set -e
+# install-git-proxy.sh - 涓€閿畨瑁呰剼鏈?set -e
 
-echo "=== 1. 准备目录 ==="
+echo "=== 1. 鍑嗗鐩綍 ==="
 mkdir -p ~/bin
 
-echo "=== 2. 复制脚本(假设你已 scp 到 /tmp) ==="
+echo "=== 2. 澶嶅埗鑴氭湰(鍋囪浣犲凡 scp 鍒?/tmp) ==="
 if [[ -f /tmp/git-proxy-debian.sh ]]; then
     mv /tmp/git-proxy-debian.sh ~/bin/git-proxy
 elif [[ -f ~/git-proxy-debian.sh ]]; then
     cp ~/git-proxy-debian.sh ~/bin/git-proxy
 else
-    echo "请先上传 git-proxy-debian.sh 到 /tmp/ 或 ~/" >&2
+    echo "璇峰厛涓婁紶 git-proxy-debian.sh 鍒?/tmp/ 鎴?~/" >&2
     exit 1
 fi
 
-echo "=== 3. 设置权限 ==="
+echo "=== 3. 璁剧疆鏉冮檺 ==="
 chmod +x ~/bin/git-proxy
 
-echo "=== 4. 配置 PATH ==="
+echo "=== 4. 閰嶇疆 PATH ==="
 grep -q 'HOME/bin' ~/.bashrc 2>/dev/null || echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc
 grep -q 'HOME/bin' ~/.profile 2>/dev/null || echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.profile
 
-echo "=== 5. 测试 ==="
+echo "=== 5. 娴嬭瘯 ==="
 ~/bin/git-proxy --help | head -3
 
 echo ""
-echo "=== 安装完成 ==="
-echo "现在可以用: git-proxy -h <IP> -p <PORT> -s"
+echo "=== 瀹夎瀹屾垚 ==="
+echo "鐜板湪鍙互鐢? git-proxy -h <IP> -p <PORT> -s"
 `
 
 ---
 
-## 五、Debug 速查
+## 浜斻€丏ebug 閫熸煡
 
 `ash
-# 1. PATH 到底有什么
-echo \
+# 1. PATH 鍒板簳鏈変粈涔?echo \
 
-# 2. git 在哪
+# 2. git 鍦ㄥ摢
 ls -la /usr/bin/git /usr/local/bin/git /bin/git 2>&1
 
-# 3. git-proxy 解析后的 GIT_CMD 是啥
+# 3. git-proxy 瑙ｆ瀽鍚庣殑 GIT_CMD 鏄暐
 bash -x ~/bin/git-proxy --help 2>&1 | grep -E "GIT_CMD=|command -v"
 
-# 4. 强制用绝对路径跑
+# 4. 寮哄埗鐢ㄧ粷瀵硅矾寰勮窇
 /usr/bin/git --version
 
-# 5. 临时强制设置 PATH 测试
+# 5. 涓存椂寮哄埗璁剧疆 PATH 娴嬭瘯
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin git-proxy -t
 `
 
 ---
 
-## 六、教训
-
-| # | 教训 |
+## 鍏€佹暀璁?
+| # | 鏁欒 |
 |---|------|
-| 1 | **永远不要假设 PATH 包含 /usr/bin**——尤其在脚本中调用其他命令时 |
-| 2 | SSH non-interactive shell 的 PATH 可能**完全不读取** .bashrc/.profile |
-| 3 | sudo 会**重置 PATH** 到 secure_path,这是另一层复杂性 |
-| 4 | 跨平台脚本要按常见位置**硬编码查找**关键命令,或显式 export PATH |
-| 5 | 用 ash -x 调试脚本可以看清楚每一步实际执行了什么 |
+| 1 | **姘歌繙涓嶈鍋囪 PATH 鍖呭惈 /usr/bin**鈥斺€斿挨鍏跺湪鑴氭湰涓皟鐢ㄥ叾浠栧懡浠ゆ椂 |
+| 2 | SSH non-interactive shell 鐨?PATH 鍙兘**瀹屽叏涓嶈鍙?* .bashrc/.profile |
+| 3 | sudo 浼?*閲嶇疆 PATH** 鍒?secure_path,杩欐槸鍙︿竴灞傚鏉傛€?|
+| 4 | 璺ㄥ钩鍙拌剼鏈鎸夊父瑙佷綅缃?*纭紪鐮佹煡鎵?*鍏抽敭鍛戒护,鎴栨樉寮?export PATH |
+| 5 | 鐢?ash -x 璋冭瘯鑴氭湰鍙互鐪嬫竻妤氭瘡涓€姝ュ疄闄呮墽琛屼簡浠€涔?|
 
 ---
 
-**适用**:Debian 11+ / Ubuntu 20.04+ / 其他使用 systemd 的现代 Linux 发行版
+**閫傜敤**:Debian 11+ / Ubuntu 20.04+ / 鍏朵粬浣跨敤 systemd 鐨勭幇浠?Linux 鍙戣鐗?
 
 
 ---
 
-# PowerShell SSH 转义导致 .bashrc 被写坏的坑
-
-> 实体 terminal 里 git-proxy 报"找不到命令"的真正原因。
-
+# PowerShell SSH 杞箟瀵艰嚧 .bashrc 琚啓鍧忕殑鍧?
+> 瀹炰綋 terminal 閲?git-proxy 鎶?鎵句笉鍒板懡浠?鐨勭湡姝ｅ師鍥犮€?
 ---
 
-## 一、症状
-
-实体登录 SSH 后:
+## 涓€銆佺棁鐘?
+瀹炰綋鐧诲綍 SSH 鍚?
 
 `ash
 yao@debian:~$ git-proxy -t
-bash: git-proxy -t : 找不到这个命令
-`
+bash: git-proxy -t : 鎵句笉鍒拌繖涓懡浠?`
 
-明明脚本在 ~/bin/git-proxy,而且 ~/bin/git-proxy --help 直接调用能用。
-
+鏄庢槑鑴氭湰鍦?~/bin/git-proxy,鑰屼笖 ~/bin/git-proxy --help 鐩存帴璋冪敤鑳界敤銆?
 ---
 
-## 二、根本原因
-
-之前用 PowerShell 通过 SSH 远程写入 PATH 配置时,**字符串转义出错**:
+## 浜屻€佹牴鏈師鍥?
+涔嬪墠鐢?PowerShell 閫氳繃 SSH 杩滅▼鍐欏叆 PATH 閰嶇疆鏃?**瀛楃涓茶浆涔夊嚭閿?*:
 
 `powershell
-# 本意是写入
-export PATH=\C:\Users\Administrator/bin:\
+# 鏈剰鏄啓鍏?export PATH=\C:\Users\Administrator/bin:\
 
-# PowerShell 转义后变成
-export PATH=\C:\Users\Administrator/bin:\
+# PowerShell 杞箟鍚庡彉鎴?export PATH=\C:\Users\Administrator/bin:\
 
-# 落到 Linux .bashrc 里就变成了 Windows 路径!
+# 钀藉埌 Linux .bashrc 閲屽氨鍙樻垚浜?Windows 璺緞!
 `
 
-最终 .bashrc 里被写入了**两行**垃圾:
+鏈€缁?.bashrc 閲岃鍐欏叆浜?*涓よ**鍨冨溇:
 
 `
 export PATH=\C:\Users\Administrator/bin:\
 export PATH=\C:\Users\Administrator/bin:\
 `
 
-这两行 PATH 在 Linux 下**完全无效**(Windows 路径),而且因为 \ 被吞掉,还把后面真正的 PATH 给截断了。
-
+杩欎袱琛?PATH 鍦?Linux 涓?*瀹屽叏鏃犳晥**(Windows 璺緞),鑰屼笖鍥犱负 \ 琚悶鎺?杩樻妸鍚庨潰鐪熸鐨?PATH 缁欐埅鏂簡銆?
 ---
 
-## 三、排查过程
-
-### 1. 看 PATH 里有什么
-
+## 涓夈€佹帓鏌ヨ繃绋?
+### 1. 鐪?PATH 閲屾湁浠€涔?
 `ash
 yao@debian:~$ echo \
-# 奇怪的输出里能看到 C:\Users\Administrator/bin 字样
+# 濂囨€殑杈撳嚭閲岃兘鐪嬪埌 C:\Users\Administrator/bin 瀛楁牱
 `
 
-### 2. 看 .bashrc 末尾
+### 2. 鐪?.bashrc 鏈熬
 
 `ash
 yao@debian:~$ tail -10 ~/.bashrc
 
-# 找到了!
+# 鎵惧埌浜?
 export PATH=\C:\Users\Administrator/bin:\
 export PATH=\C:\Users\Administrator/bin:\
 `
 
 ---
 
-## 四、修复
-
+## 鍥涖€佷慨澶?
 `ash
-# 1. 备份(防手抖)
+# 1. 澶囦唤(闃叉墜鎶?
 cp ~/.bashrc ~/.bashrc.bak
 cp ~/.profile ~/.profile.bak
 
-# 2. 删除包含 Administrator 的行
+# 2. 鍒犻櫎鍖呭惈 Administrator 鐨勮
 grep -v 'Administrator' ~/.bashrc > /tmp/bashrc.new
 mv /tmp/bashrc.new ~/.bashrc
 
-# 3. 用 **双引号** 写入正确 PATH(单引号会让 \C:\Users\Administrator 字面化)
+# 3. 鐢?**鍙屽紩鍙?* 鍐欏叆姝ｇ‘ PATH(鍗曞紩鍙蜂細璁?\C:\Users\Administrator 瀛楅潰鍖?
 echo 'export PATH="C:\Users\Administrator/bin:"' >> ~/.bashrc
 echo 'export PATH="C:\Users\Administrator/bin:"' >> ~/.profile
 
-# 4. 验证
+# 4. 楠岃瘉
 tail -5 ~/.bashrc
-# 应该看到:
+# 搴旇鐪嬪埌:
 # export PATH="C:\Users\Administrator/bin:"
 
-# 5. 立即生效(无需重新登录)
+# 5. 绔嬪嵆鐢熸晥(鏃犻渶閲嶆柊鐧诲綍)
 source ~/.bashrc
 
-# 6. 测试
+# 6. 娴嬭瘯
 git-proxy -t
 `
 
-或者用一键修复脚本(已上传 ix-bashrc.sh):
+鎴栬€呯敤涓€閿慨澶嶈剼鏈?宸蹭笂浼?ix-bashrc.sh):
 
 `ash
 scp fix-bashrc.sh yao@server:/tmp/
@@ -1976,73 +1783,67 @@ ssh yao@server "bash /tmp/fix-bashrc.sh"
 
 ---
 
-## 五、教训(对自动化运维很重要)
+## 浜斻€佹暀璁?瀵硅嚜鍔ㄥ寲杩愮淮寰堥噸瑕?
 
-| # | 教训 |
+| # | 鏁欒 |
 |---|------|
-| 1 | **PowerShell → SSH → bash** 这条链路上的字符串转义**极其容易出错** |
-| 2 | \C:\Users\Administrator 在 PowerShell 里会被转义,在 bash 里如果用单引号又不会展开,**永远是坑** |
-| 3 | 写入 .bashrc 这种关键配置文件,**一定要先备份** |
-| 4 | 远程修改后**立即验证**(用 	ail -5 看实际内容),别等用户报"命令找不到"才发现 |
-| 5 | 用**文件上传**而不是 echo ... >> 远程拼接字符串,避免所有转义问题 |
+| 1 | **PowerShell 鈫?SSH 鈫?bash** 杩欐潯閾捐矾涓婄殑瀛楃涓茶浆涔?*鏋佸叾瀹规槗鍑洪敊** |
+| 2 | \C:\Users\Administrator 鍦?PowerShell 閲屼細琚浆涔?鍦?bash 閲屽鏋滅敤鍗曞紩鍙峰張涓嶄細灞曞紑,**姘歌繙鏄潙** |
+| 3 | 鍐欏叆 .bashrc 杩欑鍏抽敭閰嶇疆鏂囦欢,**涓€瀹氳鍏堝浠?* |
+| 4 | 杩滅▼淇敼鍚?*绔嬪嵆楠岃瘉**(鐢?	ail -5 鐪嬪疄闄呭唴瀹?,鍒瓑鐢ㄦ埛鎶?鍛戒护鎵句笉鍒?鎵嶅彂鐜?|
+| 5 | 鐢?*鏂囦欢涓婁紶**鑰屼笉鏄?echo ... >> 杩滅▼鎷兼帴瀛楃涓?閬垮厤鎵€鏈夎浆涔夐棶棰?|
 
-### 正确的远程写入姿势
-
+### 姝ｇ‘鐨勮繙绋嬪啓鍏ュЭ鍔?
 `powershell
-# ❌ 错误:会被转义搞坏
+# 鉂?閿欒:浼氳杞箟鎼炲潖
 ssh user@server "echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc"
 
-# ✅ 正确:上传脚本文件,在服务器上执行
-scp fix-script.sh user@server:/tmp/
+# 鉁?姝ｇ‘:涓婁紶鑴氭湰鏂囦欢,鍦ㄦ湇鍔″櫒涓婃墽琛?scp fix-script.sh user@server:/tmp/
 ssh user@server "bash /tmp/fix-script.sh"
 
-# ✅ 或者:用 here-string 在 PowerShell 里构造,SSH 传 stdin
+# 鉁?鎴栬€?鐢?here-string 鍦?PowerShell 閲屾瀯閫?SSH 浼?stdin
  = @'
 export PATH="C:\Users\Administrator/bin:"
 '@
  | ssh user@server "cat >> ~/.bashrc"
 `
 
-### 更安全的做法:在脚本顶部检查 PATH
+### 鏇村畨鍏ㄧ殑鍋氭硶:鍦ㄨ剼鏈《閮ㄦ鏌?PATH
 
-如果 git-proxy 脚本自己能保证 PATH,就不需要依赖 .bashrc:
+濡傛灉 git-proxy 鑴氭湰鑷繁鑳戒繚璇?PATH,灏变笉闇€瑕佷緷璧?.bashrc:
 
 `ash
-# git-proxy-debian.sh 头部已经做了:
+# git-proxy-debian.sh 澶撮儴宸茬粡鍋氫簡:
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\"
 
-# 所以即使 .bashrc 写坏了,git-proxy 也能用(但前提是 ~/bin/git-proxy 存在)
+# 鎵€浠ュ嵆浣?.bashrc 鍐欏潖浜?git-proxy 涔熻兘鐢?浣嗗墠鎻愭槸 ~/bin/git-proxy 瀛樺湪)
 `
 
 ---
 
-**相关文件**: ix-bashrc.sh(一键修复工具)
+**鐩稿叧鏂囦欢**: ix-bashrc.sh(涓€閿慨澶嶅伐鍏?
 
-**推送到 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/INSTALL.md
+**鎺ㄩ€佸埌 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/INSTALL.md
 
-
----
-
-# wget / curl 在 Windows Terminal 的正确用法
-
-> `wget` 和 `curl` 在 PowerShell 里被劫持了 — 别再用错方式下载文件了。
 
 ---
 
-## 一、问题现象
+# wget / curl 鍦?Windows Terminal 鐨勬纭敤娉?
+> `wget` 鍜?`curl` 鍦?PowerShell 閲岃鍔寔浜?鈥?鍒啀鐢ㄩ敊鏂瑰紡涓嬭浇鏂囦欢浜嗐€?
+---
 
+## 涓€銆侀棶棰樼幇璞?
 ```powershell
 PS C:\Users\Administrator> wget --help
-# 报错: 不能识别 --help
-# 或者显示 Invoke-WebRequest 的帮助
-
+# 鎶ラ敊: 涓嶈兘璇嗗埆 --help
+# 鎴栬€呮樉绀?Invoke-WebRequest 鐨勫府鍔?
 PS C:\Users\Administrator> wget "https://example.com/file.zip" -O "file.zip"
-# 报错: A parameter cannot be found that accepts argument '-O'
+# 鎶ラ敊: A parameter cannot be found that accepts argument '-O'
 ```
 
-### 原因
+### 鍘熷洜
 
-Windows PowerShell 把 `wget` 和 `curl` 都**别名指向** `Invoke-WebRequest`:
+Windows PowerShell 鎶?`wget` 鍜?`curl` 閮?*鍒悕鎸囧悜** `Invoke-WebRequest`:
 
 ```powershell
 PS> Get-Command wget
@@ -2056,27 +1857,23 @@ CommandType  Name    Definition
 Alias        curl    -> Invoke-WebRequest
 ```
 
-`Invoke-WebRequest` 是 PowerShell 的下载命令,语法跟 GNU wget/curl **完全不同**。
-
+`Invoke-WebRequest` 鏄?PowerShell 鐨勪笅杞藉懡浠?璇硶璺?GNU wget/curl **瀹屽叏涓嶅悓**銆?
 ---
 
-## 二、三种解决方案
+## 浜屻€佷笁绉嶈В鍐虫柟妗?
+### 鏂规 1: 鐢ㄧ湡瀹炵▼搴忓悕(鏈€绠€鍗?
 
-### 方案 1: 用真实程序名(最简单)
-
-GNU wget 和 curl.exe 都是独立 exe,Windows Terminal 都能用。
-
+GNU wget 鍜?curl.exe 閮芥槸鐙珛 exe,Windows Terminal 閮借兘鐢ㄣ€?
 ```powershell
-# 真实 wget (已通过 Chocolatey 安装)
+# 鐪熷疄 wget (宸查€氳繃 Chocolatey 瀹夎)
 wget.exe "URL" -O "save_path"
 
-# 真实 curl (Windows 10 1803+ 自带)
+# 鐪熷疄 curl (Windows 10 1803+ 鑷甫)
 curl.exe -L -o "save_path" "URL"
 ```
 
-**关键**:**必须加 `.exe` 后缀**,否则会被 PowerShell 别名拦截。
-
-#### 验证真实程序位置
+**鍏抽敭**:**蹇呴』鍔?`.exe` 鍚庣紑**,鍚﹀垯浼氳 PowerShell 鍒悕鎷︽埅銆?
+#### 楠岃瘉鐪熷疄绋嬪簭浣嶇疆
 
 ```powershell
 where.exe wget
@@ -2088,41 +1885,39 @@ where.exe curl
 
 ---
 
-### 方案 2: 永久移除 PowerShell 别名(推荐)
+### 鏂规 2: 姘镐箙绉婚櫎 PowerShell 鍒悕(鎺ㄨ崘)
 
-加到 PowerShell profile (`$PROFILE`):
+鍔犲埌 PowerShell profile (`$PROFILE`):
 
 ```powershell
 notepad $PROFILE
 ```
 
-添加:
+娣诲姞:
 
 ```powershell
-# 让 wget/curl 默认就是真实命令
+# 璁?wget/curl 榛樿灏辨槸鐪熷疄鍛戒护
 Remove-Item Alias:wget -Force -ErrorAction SilentlyContinue
 Remove-Item Alias:curl -Force -ErrorAction SilentlyContinue
 ```
 
-新开终端后,直接 `wget URL -O file` 就能用。
-
+鏂板紑缁堢鍚?鐩存帴 `wget URL -O file` 灏辫兘鐢ㄣ€?
 ---
 
-### 方案 3: 用 PowerShell 原生命令
+### 鏂规 3: 鐢?PowerShell 鍘熺敓鍛戒护
 
-如果不下载外部工具,直接用 `Invoke-WebRequest`:
+濡傛灉涓嶄笅杞藉閮ㄥ伐鍏?鐩存帴鐢?`Invoke-WebRequest`:
 
 ```powershell
-# 下载到文件
-Invoke-WebRequest -Uri "https://example.com/file.zip" -OutFile "file.zip"
+# 涓嬭浇鍒版枃浠?Invoke-WebRequest -Uri "https://example.com/file.zip" -OutFile "file.zip"
 
-# 简写(aliased to iwr)
+# 绠€鍐?aliased to iwr)
 iwr "URL" -OutFile "file.zip"
 
-# 显示进度
+# 鏄剧ず杩涘害
 Invoke-WebRequest -Uri "URL" -OutFile "file.zip" -Verbose
 
-# POST 请求
+# POST 璇锋眰
 Invoke-RestMethod -Uri "https://api.example.com" -Method Post `
     -Body '{"key":"value"}' `
     -ContentType "application/json"
@@ -2130,47 +1925,44 @@ Invoke-RestMethod -Uri "https://api.example.com" -Method Post `
 
 ---
 
-## 三、实战命令大全
-
-### 1. 下载单文件
-
+## 涓夈€佸疄鎴樺懡浠ゅぇ鍏?
+### 1. 涓嬭浇鍗曟枃浠?
 ```powershell
-# wget 风格
+# wget 椋庢牸
 wget.exe -c "https://example.com/large-file.zip" -O "D:\Downloads\file.zip"
 
-# curl 风格
+# curl 椋庢牸
 curl.exe -L -o "D:\Downloads\file.zip" "https://example.com/large-file.zip"
 ```
 
-参数:
-| 工具 | 参数 | 作用 |
+鍙傛暟:
+| 宸ュ叿 | 鍙傛暟 | 浣滅敤 |
 |------|------|------|
-| wget | `-c` | 断点续传 |
-| wget | `-tries=N` | 重试 N 次 |
-| wget | `-timeout=S` | 超时秒数 |
-| curl | `-L` | 跟随重定向 |
-| curl | `-C -` | 断点续传 |
-| curl | `--retry N` | 重试 |
+| wget | `-c` | 鏂偣缁紶 |
+| wget | `-tries=N` | 閲嶈瘯 N 娆?|
+| wget | `-timeout=S` | 瓒呮椂绉掓暟 |
+| curl | `-L` | 璺熼殢閲嶅畾鍚?|
+| curl | `-C -` | 鏂偣缁紶 |
+| curl | `--retry N` | 閲嶈瘯 |
 
-### 2. 通过 GitHub 代理下载 Release 文件
+### 2. 閫氳繃 GitHub 浠ｇ悊涓嬭浇 Release 鏂囦欢
 
 ```powershell
-# URL 模板
+# URL 妯℃澘
 # https://gh-proxy.org/https://github.com/USER/REPO/releases/download/TAG/FILE
-# 或 https://v4.gh-proxy.org/...
+# 鎴?https://v4.gh-proxy.org/...
 
-# 下载 N1 OpenWrt 固件 (279 MB)
+# 涓嬭浇 N1 OpenWrt 鍥轰欢 (279 MB)
 wget.exe -c --tries=10 --timeout=60 `
     "https://v4.gh-proxy.org/https://github.com/yao1987825/Cloud-N1-OpenWrt/releases/download/20260918/openwrt_s905d_n1_R26.03.25_k6.12.65-flippy-94+.img.gz" `
     -O "D:\Downloads\openwrt_n1.img.gz"
 ```
 
-**URL 必须用引号包**!文件名里有 `+`、`.` 等字符,PowerShell 不加引号会解析错。
-
-### 3. 下载多个文件
+**URL 蹇呴』鐢ㄥ紩鍙峰寘**!鏂囦欢鍚嶉噷鏈?`+`銆乣.` 绛夊瓧绗?PowerShell 涓嶅姞寮曞彿浼氳В鏋愰敊銆?
+### 3. 涓嬭浇澶氫釜鏂囦欢
 
 ```powershell
-# 准备 URL 列表
+# 鍑嗗 URL 鍒楄〃
 @(
     "https://example.com/file1.zip",
     "https://example.com/file2.zip",
@@ -2181,32 +1973,29 @@ wget.exe -c --tries=10 --timeout=60 `
 }
 ```
 
-### 4. 断点续传大文件
-
+### 4. 鏂偣缁紶澶ф枃浠?
 ```powershell
-# wget 方式 (-c 参数)
+# wget 鏂瑰紡 (-c 鍙傛暟)
 wget.exe -c "https://example.com/huge-file.iso" -O "D:\Downloads\file.iso"
-# Ctrl+C 中断后,再次执行同一条命令可接着下
-
-# curl 方式
+# Ctrl+C 涓柇鍚?鍐嶆鎵ц鍚屼竴鏉″懡浠ゅ彲鎺ョ潃涓?
+# curl 鏂瑰紡
 curl.exe -C - -o "D:\Downloads\file.iso" "https://example.com/huge-file.iso"
 ```
 
-### 5. 只看 HTTP 头
-
+### 5. 鍙湅 HTTP 澶?
 ```powershell
 # wget
 wget.exe --spider "URL"
 
 # curl
 curl.exe -I -L "URL"
-# 输出:
+# 杈撳嚭:
 # HTTP/1.1 200 OK
 # Content-Type: application/octet-stream
 # Content-Length: 279415162
 ```
 
-### 6. POST 数据到 API
+### 6. POST 鏁版嵁鍒?API
 
 ```powershell
 # wget
@@ -2220,327 +2009,293 @@ wget.exe --header="Content-Type: application/json" `
 # curl
 curl.exe -X POST -d '{"key":"value"}' -H "Content-Type: application/json" "URL"
 
-# curl + 文件 @-prefix
+# curl + 鏂囦欢 @-prefix
 curl.exe -X POST -d @data.json -H "Content-Type: application/json" "URL"
 ```
 
-### 7. 下载并显示进度条
+### 7. 涓嬭浇骞舵樉绀鸿繘搴︽潯
 
 ```powershell
-# wget 默认就有进度条
-wget.exe "URL" -O "file.zip"
+# wget 榛樿灏辨湁杩涘害鏉?wget.exe "URL" -O "file.zip"
 
-# curl 加 # 符号显示进度条
-curl.exe -# -o "file.zip" "URL"
+# curl 鍔?# 绗﹀彿鏄剧ず杩涘害鏉?curl.exe -# -o "file.zip" "URL"
 ```
 
 ---
 
-## 四、命令对照表
+## 鍥涖€佸懡浠ゅ鐓ц〃
 
-| 功能 | GNU wget | GNU curl | PowerShell |
+| 鍔熻兘 | GNU wget | GNU curl | PowerShell |
 |------|----------|----------|------------|
-| 下载文件 | `wget URL -O file` | `curl URL -o file` | `iwr URL -OutFile file` |
-| 断点续传 | `wget -c URL` | `curl -C - URL` | 无原生 |
-| 仅看头 | `wget --spider URL` | `curl -I URL` | `iwr -Method Head URL` |
+| 涓嬭浇鏂囦欢 | `wget URL -O file` | `curl URL -o file` | `iwr URL -OutFile file` |
+| 鏂偣缁紶 | `wget -c URL` | `curl -C - URL` | 鏃犲師鐢?|
+| 浠呯湅澶?| `wget --spider URL` | `curl -I URL` | `iwr -Method Head URL` |
 | POST | `wget --post-data=...` | `curl -X POST -d ...` | `irm -Method Post -Body ...` |
-| 跟随重定向 | 默认 | `curl -L` | 默认 |
-| 用户认证 | `wget --user=... --password=...` | `curl -u user:pass` | `iwr -Credential ...` |
-| 限速 | `wget --limit-rate=200k` | `curl --limit-rate 200k` | 无 |
-| 静默 | `wget -q` | `curl -s` | `iwr -Quiet` |
+| 璺熼殢閲嶅畾鍚?| 榛樿 | `curl -L` | 榛樿 |
+| 鐢ㄦ埛璁よ瘉 | `wget --user=... --password=...` | `curl -u user:pass` | `iwr -Credential ...` |
+| 闄愰€?| `wget --limit-rate=200k` | `curl --limit-rate 200k` | 鏃?|
+| 闈欓粯 | `wget -q` | `curl -s` | `iwr -Quiet` |
 
 ---
 
-## 五、常见错误
-
-### 错误 1: PowerShell 别名拦截
+## 浜斻€佸父瑙侀敊璇?
+### 閿欒 1: PowerShell 鍒悕鎷︽埅
 
 ```
 wget: A parameter cannot be found that accepts argument '-O'
 ```
 
-**解决**:用 `wget.exe` 或在 `$PROFILE` 移除别名。
-
-### 错误 2: URL 引号问题
+**瑙ｅ喅**:鐢?`wget.exe` 鎴栧湪 `$PROFILE` 绉婚櫎鍒悕銆?
+### 閿欒 2: URL 寮曞彿闂
 
 ```
 wget: URL not found
 ```
 
-**解决**:URL 必须用双引号,尤其包含 `+`、`.`、特殊字符时:
+**瑙ｅ喅**:URL 蹇呴』鐢ㄥ弻寮曞彿,灏ゅ叾鍖呭惈 `+`銆乣.`銆佺壒娈婂瓧绗︽椂:
 ```powershell
 wget.exe "https://example.com/file+v1.2.zip" -O "file.zip"
 #                                  ^         ^
-#                                  必须用引号!
+#                                  蹇呴』鐢ㄥ紩鍙?
 ```
 
-### 错误 3: 文件路径权限
+### 閿欒 3: 鏂囦欢璺緞鏉冮檺
 
 ```
 wget: Permission denied
 ```
 
-**解决**:输出路径要有写权限。不要下到 `C:\Program Files\`、`C:\Windows\`。
-下到 `D:\Downloads\` 或 `%USERPROFILE%\Downloads\`。
-
-### 错误 4: 下载到 99% 失败
+**瑙ｅ喅**:杈撳嚭璺緞瑕佹湁鍐欐潈闄愩€備笉瑕佷笅鍒?`C:\Program Files\`銆乣C:\Windows\`銆?涓嬪埌 `D:\Downloads\` 鎴?`%USERPROFILE%\Downloads\`銆?
+### 閿欒 4: 涓嬭浇鍒?99% 澶辫触
 
 ```
 wget: Connection reset by peer
 ```
 
-**解决**:用 `-c` 断点续传重试:
+**瑙ｅ喅**:鐢?`-c` 鏂偣缁紶閲嶈瘯:
 ```powershell
 wget.exe -c --tries=20 --timeout=120 "URL" -O "file"
 ```
 
-### 错误 5: 下载到一半发现想下错文件
+### 閿欒 5: 涓嬭浇鍒颁竴鍗婂彂鐜版兂涓嬮敊鏂囦欢
 
-`Ctrl + C` 中断,`rm` 删掉半成品,从头来。
-
+`Ctrl + C` 涓柇,`rm` 鍒犳帀鍗婃垚鍝?浠庡ご鏉ャ€?
 ---
 
-## 六、一键配置(写入 $PROFILE)
+## 鍏€佷竴閿厤缃?鍐欏叆 $PROFILE)
 
 ```powershell
-# 编辑 profile
+# 缂栬緫 profile
 notepad $PROFILE
 ```
 
-加入:
+鍔犲叆:
 
 ```powershell
-# === wget/curl 修复 ===
+# === wget/curl 淇 ===
 Remove-Item Alias:wget -Force -ErrorAction SilentlyContinue
 Remove-Item Alias:curl -Force -ErrorAction SilentlyContinue
 
-# === Git 代理快捷 ===
+# === Git 浠ｇ悊蹇嵎 ===
 function px-proxy "shae00O6_socks5" { git-proxy @args }
-Set-Alias px "function:px-proxy" 2>$null  # 简化调用
-```
+Set-Alias px "function:px-proxy" 2>$null  # 绠€鍖栬皟鐢?```
 
-新开终端后:
-- `wget URL -O file` 直接生效
-- `curl URL -o file` 直接生效
-- `px -h 127.0.0.1 -p 1080 -s` 一键设置 git 代理
+鏂板紑缁堢鍚?
+- `wget URL -O file` 鐩存帴鐢熸晥
+- `curl URL -o file` 鐩存帴鐢熸晥
+- `px -h 127.0.0.1 -p 1080 -s` 涓€閿缃?git 浠ｇ悊
 
 ---
 
-## 七、验证方法
-
+## 涓冦€侀獙璇佹柟娉?
 ```powershell
-# 1. 验证 wget 真实能用
+# 1. 楠岃瘉 wget 鐪熷疄鑳界敤
 wget.exe --version
-# 应该显示 GNU wget 1.20 之类
+# 搴旇鏄剧ず GNU wget 1.20 涔嬬被
 
-# 2. 验证 PowerShell 别名状态
-Get-Command wget
-# 如果显示 "Alias -> wget.exe" 说明已修复
-# 如果显示 "Alias -> Invoke-WebRequest" 说明还是被劫持
-
-# 3. 真实测试
+# 2. 楠岃瘉 PowerShell 鍒悕鐘舵€?Get-Command wget
+# 濡傛灉鏄剧ず "Alias -> wget.exe" 璇存槑宸蹭慨澶?# 濡傛灉鏄剧ず "Alias -> Invoke-WebRequest" 璇存槑杩樻槸琚姭鎸?
+# 3. 鐪熷疄娴嬭瘯
 wget.exe "https://www.google.com" -O "test.html"
-# 应该下载 google 首页
+# 搴旇涓嬭浇 google 棣栭〉
 
 Remove-Item "test.html"
 ```
 
 ---
 
-## 八、参考
-
-- [GNU wget 官方文档](https://www.gnu.org/software/wget/manual/)
-- [curl 官方文档](https://curl.se/docs/)
+## 鍏€佸弬鑰?
+- [GNU wget 瀹樻柟鏂囨。](https://www.gnu.org/software/wget/manual/)
+- [curl 瀹樻柟鏂囨。](https://curl.se/docs/)
 - [PowerShell Invoke-WebRequest](https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/invoke-webrequest)
-- [GitHub 代理 gh-proxy.org](https://gh-proxy.org)
+- [GitHub 浠ｇ悊 gh-proxy.org](https://gh-proxy.org)
 
 ---
 
-**适用**:Windows Terminal + PowerShell 5.1/7 + Windows 10/11
+**閫傜敤**:Windows Terminal + PowerShell 5.1/7 + Windows 10/11
 
 
 ---
 
-# git-proxy 坑：-T 神秘失效
+# git-proxy 鍧戯細-T 绁炵澶辨晥
 
-> 明明写了 -T http 但 git-proxy 不执行 set,而是跑 test——PowerShell 参数别名大小写不敏感的坑。
-
+> 鏄庢槑鍐欎簡 -T http 浣?git-proxy 涓嶆墽琛?set,鑰屾槸璺?test鈥斺€擯owerShell 鍙傛暟鍒悕澶у皬鍐欎笉鏁忔劅鐨勫潙銆?
 ---
 
-## 一、症状
-
+## 涓€銆佺棁鐘?
 `powershell
-PS> git-proxy -h 18.163.99.118 -p 80 -T http -s
+PS> git-proxy -h 198.51.100.10 -p 80 -T http -s
 [INFO]  Testing current Git proxy connectivity...
 
 [WARN]  No proxy currently set. Use -h <IP> -p <PORT> -s to set one.
 `
 
-本意是「设置 HTTP 代理」，但脚本实际执行的是「测试当前代理」，所以报 "No proxy currently set"。
-
+鏈剰鏄€岃缃?HTTP 浠ｇ悊銆嶏紝浣嗚剼鏈疄闄呮墽琛岀殑鏄€屾祴璇曞綋鍓嶄唬鐞嗐€嶏紝鎵€浠ユ姤 "No proxy currently set"銆?
 ---
 
-## 二、根本原因
-
-**PowerShell 的参数别名是大小写不敏感的**。
-
-脚本里同时定义了:
+## 浜屻€佹牴鏈師鍥?
+**PowerShell 鐨勫弬鏁板埆鍚嶆槸澶у皬鍐欎笉鏁忔劅鐨?*銆?
+鑴氭湰閲屽悓鏃跺畾涔変簡:
 `powershell
-[Alias("t")][switch],           # -t → 测试
-[ValidateSet(...)][string] # -T 也想当别名,但会跟 -t 冲突
+[Alias("t")][switch],           # -t 鈫?娴嬭瘯
+[ValidateSet(...)][string] # -T 涔熸兂褰撳埆鍚?浣嗕細璺?-t 鍐茬獊
 `
 
-PowerShell 解析时:
-- -T → 跟 -t 匹配(忽略大小写)→ 触发 Test 模式
-- http → 被当成 -p 后的位置参数? → 然后就报 No proxy
-- -s → Set 标志 → 但因为 Test 已经先匹配,被忽略
-
+PowerShell 瑙ｆ瀽鏃?
+- -T 鈫?璺?-t 鍖归厤(蹇界暐澶у皬鍐?鈫?瑙﹀彂 Test 妯″紡
+- http 鈫?琚綋鎴?-p 鍚庣殑浣嶇疆鍙傛暟? 鈫?鐒跺悗灏辨姤 No proxy
+- -s 鈫?Set 鏍囧織 鈫?浣嗗洜涓?Test 宸茬粡鍏堝尮閰?琚拷鐣?
 ---
 
-## 三、临时方案:用全名
-
+## 涓夈€佷复鏃舵柟妗?鐢ㄥ叏鍚?
 `powershell
-# 用 -ProxyType 全名,不用 -T 简写
-git-proxy -h 18.163.99.118 -p 80 -ProxyType http -s
+# 鐢?-ProxyType 鍏ㄥ悕,涓嶇敤 -T 绠€鍐?git-proxy -h 198.51.100.10 -p 80 -ProxyType http -s
 #                                  ^^^^^^^^
-#                                  不要用 -T
+#                                  涓嶈鐢?-T
 `
 
-这是当前 v1.x 版本唯一能用的方式。
-
+杩欐槸褰撳墠 v1.x 鐗堟湰鍞竴鑳界敤鐨勬柟寮忋€?
 ---
 
-## 四、永久修复(已合入 v2.0)
+## 鍥涖€佹案涔呬慨澶?宸插悎鍏?v2.0)
 
-把 -t 改名,释放 -T 给 -ProxyType:
+鎶?-t 鏀瑰悕,閲婃斁 -T 缁?-ProxyType:
 
 `powershell
-# 旧:
+# 鏃?
 [Alias("t")][switch],
 
-# 新:
+# 鏂?
 [Alias("Test")][switch],
 [Alias("T")][ValidateSet("http","https","socks5")][string] = "socks5",
 `
 
-### 迁移映射
+### 杩佺Щ鏄犲皠
 
-| 旧命令 | 新命令 |
+| 鏃у懡浠?| 鏂板懡浠?|
 |--------|--------|
 | git-proxy -t | git-proxy -Test |
-| git-proxy -T http -s | git-proxy -T http -s (现在能用了) |
+| git-proxy -T http -s | git-proxy -T http -s (鐜板湪鑳界敤浜? |
 
-### 验证 v2.0
+### 楠岃瘉 v2.0
 
 `powershell
-PS> git-proxy -h 18.163.99.118 -p 80 -T http -s
-[INFO]  Setting http proxy: http://18.163.99.118:80
+PS> git-proxy -h 198.51.100.10 -p 80 -T http -s
+[INFO]  Setting http proxy: http://198.51.100.10:80
 [OK]    Proxy set successfully (effective immediately)
 
   Protocol    = http
-  http.proxy  = http://18.163.99.118:80
-  https.proxy = http://18.163.99.118:80
+  http.proxy  = http://198.51.100.10:80
+  https.proxy = http://198.51.100.10:80
 
 PS> git-proxy -Test
 [INFO]  Testing current Git proxy connectivity...
-[OK]    [REACHABLE] http://18.163.99.118:80
+[OK]    [REACHABLE] http://198.51.100.10:80
 [OK]    [HTTP OK]   github.com reachable via proxy
 `
 
 ---
 
-## 五、PowerShell 别名规则详解
+## 浜斻€丳owerShell 鍒悕瑙勫垯璇﹁В
 
 `powershell
-# PowerShell 别名 = 完全不区分大小写
+# PowerShell 鍒悕 = 瀹屽叏涓嶅尯鍒嗗ぇ灏忓啓
 [Alias("foo")]
 [Alias("FOO")]
 [Alias("Foo")]
-# 这三个完全一样,后定义的覆盖前面的
-
-# 命令行参数也大小写不敏感
+# 杩欎笁涓畬鍏ㄤ竴鏍?鍚庡畾涔夌殑瑕嗙洊鍓嶉潰鐨?
+# 鍛戒护琛屽弬鏁颁篃澶у皬鍐欎笉鏁忔劅
 Get-Help -full
 get-help -FULL
 Get-help -Full
-# 全部等价
+# 鍏ㄩ儴绛変环
 
-# 所以:
-# -h 和 -H 等价
-# -ProxyType 和 -proxytype 等价
-# -T 和 -t 等价(但只能对应一个 Alias)
+# 鎵€浠?
+# -h 鍜?-H 绛変环
+# -ProxyType 鍜?-proxytype 绛変环
+# -T 鍜?-t 绛変环(浣嗗彧鑳藉搴斾竴涓?Alias)
 `
 
 ---
 
-## 六、踩坑教训
-
-| # | 教训 |
+## 鍏€佽俯鍧戞暀璁?
+| # | 鏁欒 |
 |---|------|
-| 1 | PowerShell 参数别名**永远不要冲突**(即使只是大小写差异) |
-| 2 | 想保留两个相近参数的简写别名,**必须不同长度**(-t vs -T 不行,-t vs -Test 可以) |
-| 3 | 临时解决:用全名 (-ProxyType) |
-| 4 | 写完脚本后,**手工测试每种参数组合**,别只看语法通过 |
-| 5 | 用 Get-Help script.ps1 -Full 可以看到所有别名,验证无冲突 |
+| 1 | PowerShell 鍙傛暟鍒悕**姘歌繙涓嶈鍐茬獊**(鍗充娇鍙槸澶у皬鍐欏樊寮? |
+| 2 | 鎯充繚鐣欎袱涓浉杩戝弬鏁扮殑绠€鍐欏埆鍚?**蹇呴』涓嶅悓闀垮害**(-t vs -T 涓嶈,-t vs -Test 鍙互) |
+| 3 | 涓存椂瑙ｅ喅:鐢ㄥ叏鍚?(-ProxyType) |
+| 4 | 鍐欏畬鑴氭湰鍚?**鎵嬪伐娴嬭瘯姣忕鍙傛暟缁勫悎**,鍒彧鐪嬭娉曢€氳繃 |
+| 5 | 鐢?Get-Help script.ps1 -Full 鍙互鐪嬪埌鎵€鏈夊埆鍚?楠岃瘉鏃犲啿绐?|
 
 ---
 
-## 七、相关代码差异
-
-### v1.x (有 bug)
+## 涓冦€佺浉鍏充唬鐮佸樊寮?
+### v1.x (鏈?bug)
 
 `powershell
 param(
     [Alias("h")][string],
     [Alias("p")][int],
-    [ValidateSet("http","https","socks5")][string] = "socks5",  # ← 没别名
-    [Alias("t")][switch],                                              # ← -t 占用
+    [ValidateSet("http","https","socks5")][string] = "socks5",  # 鈫?娌″埆鍚?    [Alias("t")][switch],                                              # 鈫?-t 鍗犵敤
     [Alias("s")][switch],
     [Alias("u")][switch],
     [Alias("c")][switch],
 )
-# 用户输入 -T http -s
-# -T 被解析为 -t → 跑测试
-# http 被忽略
-# -s 被忽略
-`
+# 鐢ㄦ埛杈撳叆 -T http -s
+# -T 琚В鏋愪负 -t 鈫?璺戞祴璇?# http 琚拷鐣?# -s 琚拷鐣?`
 
-### v2.0 (已修复)
+### v2.0 (宸蹭慨澶?
 
 `powershell
 param(
     [Alias("h")][string],
     [Alias("p")][int],
-    [Alias("T")][ValidateSet("http","https","socks5")][string] = "socks5",  # ← -T 可用
-    [Alias("Test")][switch],                                                 # ← -Test,不再用 -t
+    [Alias("T")][ValidateSet("http","https","socks5")][string] = "socks5",  # 鈫?-T 鍙敤
+    [Alias("Test")][switch],                                                 # 鈫?-Test,涓嶅啀鐢?-t
     [Alias("s")][switch],
     [Alias("u")][switch],
     [Alias("c")][switch],
 )
-# 用户输入 -T http -s
-# -T 解析为 ProxyType
-# http 解析为 ProxyType 的值
-# -s 触发 Set
-# 完美工作 ✅
-`
+# 鐢ㄦ埛杈撳叆 -T http -s
+# -T 瑙ｆ瀽涓?ProxyType
+# http 瑙ｆ瀽涓?ProxyType 鐨勫€?# -s 瑙﹀彂 Set
+# 瀹岀編宸ヤ綔 鉁?`
 
 ---
 
-**推送到 GitHub**: https://github.com/yao1987825/git-proxy/blob/main/windows/git-proxy.ps1
+**鎺ㄩ€佸埌 GitHub**: https://github.com/yao1987825/git-proxy/blob/main/windows/git-proxy.ps1
 
 
 ---
 
-# HTTP 代理无法推送 HTTPS 仓库的问题
-
-> git-proxy -Test 都通过,但 git push 报 CONNECT tunnel failed, response 400。
-
+# HTTP 浠ｇ悊鏃犳硶鎺ㄩ€?HTTPS 浠撳簱鐨勯棶棰?
+> git-proxy -Test 閮介€氳繃,浣?git push 鎶?CONNECT tunnel failed, response 400銆?
 ---
 
-## 一、症状
-
+## 涓€銆佺棁鐘?
 `powershell
 PS> git-proxy -Test
-[OK]  [REACHABLE]  http://18.163.99.118:80
+[OK]  [REACHABLE]  http://198.51.100.10:80
 [OK]  [HTTP OK]    github.com reachable via proxy
 
 PS> git push -u origin main
@@ -2548,188 +2303,168 @@ fatal: unable to access 'https://github.com/...':
   CONNECT tunnel failed, response 400
 `
 
-git-proxy -Test 明明通过了!但 git push 还是失败。
-
+git-proxy -Test 鏄庢槑閫氳繃浜?浣?git push 杩樻槸澶辫触銆?
 ---
 
-## 二、根因
-
-git-proxy -Test 只测了代理的 **HTTP 转发能力**,没测 **HTTPS CONNECT 隧道能力**。
-
-Git 推送 HTTPS 仓库时发的是:
+## 浜屻€佹牴鍥?
+git-proxy -Test 鍙祴浜嗕唬鐞嗙殑 **HTTP 杞彂鑳藉姏**,娌℃祴 **HTTPS CONNECT 闅ч亾鑳藉姏**銆?
+Git 鎺ㄩ€?HTTPS 浠撳簱鏃跺彂鐨勬槸:
 `
 CONNECT github.com:443 HTTP/1.1
 `
 
-代理如果只支持 HTTP 转发(普通 HTTP GET/POST),**不支持 HTTPS 隧道**,就会返回 400 Bad Request。
-
-### 你这个代理的具体表现
+浠ｇ悊濡傛灉鍙敮鎸?HTTP 杞彂(鏅€?HTTP GET/POST),**涓嶆敮鎸?HTTPS 闅ч亾**,灏变細杩斿洖 400 Bad Request銆?
+### 浣犺繖涓唬鐞嗙殑鍏蜂綋琛ㄧ幇
 
 `ash
-$ curl -v -x "http://18.163.99.118:80" "https://github.com"
+$ curl -v -x "http://198.51.100.10:80" "https://github.com"
 > CONNECT github.com:443 HTTP/1.1
 > Host: github.com:443
 >
-< HTTP/1.1 400 Bad Request     ← 代理拒绝建隧道
-< Server: nginx/1.22.0
+< HTTP/1.1 400 Bad Request     鈫?浠ｇ悊鎷掔粷寤洪毀閬?< Server: nginx/1.22.0
 `
 
 ---
 
-## 三、解决方案
+## 涓夈€佽В鍐虫柟妗?
+### 鏂规 1(鏈€鎺ㄨ崘):鎹?SOCKS5 浠ｇ悊
 
-### 方案 1(最推荐):换 SOCKS5 代理
-
-SOCKS5 协议支持任何 TCP 流量,不存在 HTTPS 隧道问题。
-
+SOCKS5 鍗忚鏀寔浠讳綍 TCP 娴侀噺,涓嶅瓨鍦?HTTPS 闅ч亾闂銆?
 `powershell
 git-proxy -u
-git-proxy -h 127.0.0.1 -p 1080 -s        # 本地 SOCKS5
-# 或者
-git-proxy -h 你的SOCKS5服务器 -p 1080 -s
+git-proxy -h 127.0.0.1 -p 1080 -s        # 鏈湴 SOCKS5
+# 鎴栬€?git-proxy -h 浣犵殑SOCKS5鏈嶅姟鍣?-p 1080 -s
 `
 
-常见的 SOCKS5 来源:
+甯歌鐨?SOCKS5 鏉ユ簮:
 - Clash Verge / Clash for Windows: 127.0.0.1:7891
 - V2RayN: 127.0.0.1:10808
-- SSH 动态转发: ssh -D 1080 user@server 后用 127.0.0.1:1080
+- SSH 鍔ㄦ€佽浆鍙? ssh -D 1080 user@server 鍚庣敤 127.0.0.1:1080
 
-### 方案 2:用新增的 -HttpOnly 选项(仅 HTTP)
+### 鏂规 2:鐢ㄦ柊澧炵殑 -HttpOnly 閫夐」(浠?HTTP)
 
-如果你的代理只支持 HTTP,**且你只用 HTTP 协议的 git 仓库**(大部分 GitHub 仓库是 HTTPS,这条路基本走不通):
+濡傛灉浣犵殑浠ｇ悊鍙敮鎸?HTTP,**涓斾綘鍙敤 HTTP 鍗忚鐨?git 浠撳簱**(澶ч儴鍒?GitHub 浠撳簱鏄?HTTPS,杩欐潯璺熀鏈蛋涓嶉€?:
 
 `powershell
 git-proxy -u
-git-proxy -h 18.163.99.118 -p 80 -T http -HttpOnly -s
+git-proxy -h 198.51.100.10 -p 80 -T http -HttpOnly -s
 #                                       ^^^^^^^^
-#                                       只设 http.proxy, 不设 https.proxy
+#                                       鍙 http.proxy, 涓嶈 https.proxy
 `
 
-效果:
+鏁堟灉:
 `
-http.proxy  = http://18.163.99.118:80
-https.proxy = (空)
+http.proxy  = http://198.51.100.10:80
+https.proxy = (绌?
 `
 
-**但实际效果有限**:GitHub/GitLab 都强制 HTTPS,这个选项只是绕开 https.proxy 设置,实际 push 时还是会尝试 HTTPS → 还是会失败。
+**浣嗗疄闄呮晥鏋滄湁闄?*:GitHub/GitLab 閮藉己鍒?HTTPS,杩欎釜閫夐」鍙槸缁曞紑 https.proxy 璁剧疆,瀹為檯 push 鏃惰繕鏄細灏濊瘯 HTTPS 鈫?杩樻槸浼氬け璐ャ€?
+### 鏂规 3:鎹㈣兘鏀寔 HTTPS 鐨?HTTP 浠ｇ悊
 
-### 方案 3:换能支持 HTTPS 的 HTTP 代理
-
-有些代理(比如 Squid 配置好的、Caddy reverse_proxy、nginx stream)支持 HTTPS CONNECT。要看你的 18.163.99.118:80 后端是什么。
-
+鏈変簺浠ｇ悊(姣斿 Squid 閰嶇疆濂界殑銆丆addy reverse_proxy銆乶ginx stream)鏀寔 HTTPS CONNECT銆傝鐪嬩綘鐨?198.51.100.10:80 鍚庣鏄粈涔堛€?
 ---
 
-## 四、改进版 -Test(更严格的检测)
+## 鍥涖€佹敼杩涚増 -Test(鏇翠弗鏍肩殑妫€娴?
 
-v2.1 改进了 -Test,会真正测试 HTTPS CONNECT:
+v2.1 鏀硅繘浜?-Test,浼氱湡姝ｆ祴璇?HTTPS CONNECT:
 
 `
 PS> git-proxy -Test
 [INFO]  Testing current Git proxy connectivity...
 
-  Testing http.proxy = http://18.163.99.118:80 ...
-[OK]    [REACHABLE]  http://18.163.99.118:80
-[OK]    [HTTP OK]    github.com reachable via proxy   ← 普通 HTTP OK
+  Testing http.proxy = http://198.51.100.10:80 ...
+[OK]    [REACHABLE]  http://198.51.100.10:80
+[OK]    [HTTP OK]    github.com reachable via proxy   鈫?鏅€?HTTP OK
 
-  Testing https.proxy = http://18.163.99.118:80 ...
-[OK]    [REACHABLE]  http://18.163.99.118:80
-[WARN]  [HTTPS FAIL] github.com NOT reachable via HTTPS tunnel  ← 真问题在这
-[WARN]  Proxy is HTTP-only, won't work for HTTPS git repos
+  Testing https.proxy = http://198.51.100.10:80 ...
+[OK]    [REACHABLE]  http://198.51.100.10:80
+[WARN]  [HTTPS FAIL] github.com NOT reachable via HTTPS tunnel  鈫?鐪熼棶棰樺湪杩?[WARN]  Proxy is HTTP-only, won't work for HTTPS git repos
 [WARN]  Use SOCKS5 proxy instead, or add -HttpOnly flag
 `
 
-如果你看到 [HTTPS FAIL],就是这个问题,必须换 SOCKS5 代理。
-
+濡傛灉浣犵湅鍒?[HTTPS FAIL],灏辨槸杩欎釜闂,蹇呴』鎹?SOCKS5 浠ｇ悊銆?
 ---
 
-## 五、相关 git 命令
+## 浜斻€佺浉鍏?git 鍛戒护
 
 `ash
-# 查看当前 git 代理
+# 鏌ョ湅褰撳墠 git 浠ｇ悊
 git config --global --get http.proxy
 git config --global --get https.proxy
 
-# 测试不通过代理能不能连 github
+# 娴嬭瘯涓嶉€氳繃浠ｇ悊鑳戒笉鑳借繛 github
 git -c http.proxy= -c https.proxy= clone https://github.com/octocat/Hello-World.git /tmp/test
 
-# 测试只通过 http.proxy(不走 https.proxy)
+# 娴嬭瘯鍙€氳繃 http.proxy(涓嶈蛋 https.proxy)
 git -c https.proxy= clone https://github.com/octocat/Hello-World.git /tmp/test
 `
 
 ---
 
-## 六、教训
-
-| # | 教训 |
+## 鍏€佹暀璁?
+| # | 鏁欒 |
 |---|------|
-| 1 | HTTP 代理 ≠ HTTPS 代理。HTTP 转发和 HTTPS 隧道是两码事 |
-| 2 | 国内很多 HTTP 代理(尤其是 CDN 加速的)只支持 HTTP 转发 |
-| 3 | git-proxy -Test 在 v2.0 只测了 HTTP,被这个 case 打了脸 |
-| 4 | 一劳永逸:**用 SOCKS5 代理** |
-| 5 | 如果只有 HTTP 代理,-HttpOnly 是 workaround,不是 solution |
+| 1 | HTTP 浠ｇ悊 鈮?HTTPS 浠ｇ悊銆侶TTP 杞彂鍜?HTTPS 闅ч亾鏄袱鐮佷簨 |
+| 2 | 鍥藉唴寰堝 HTTP 浠ｇ悊(灏ゅ叾鏄?CDN 鍔犻€熺殑)鍙敮鎸?HTTP 杞彂 |
+| 3 | git-proxy -Test 鍦?v2.0 鍙祴浜?HTTP,琚繖涓?case 鎵撲簡鑴?|
+| 4 | 涓€鍔虫案閫?**鐢?SOCKS5 浠ｇ悊** |
+| 5 | 濡傛灉鍙湁 HTTP 浠ｇ悊,-HttpOnly 鏄?workaround,涓嶆槸 solution |
 
 ---
 
-**相关代码**: git-proxy.ps1 v2.1(已加 -HttpOnly 参数 + 改进的 -Test 测 HTTPS)
+**鐩稿叧浠ｇ爜**: git-proxy.ps1 v2.1(宸插姞 -HttpOnly 鍙傛暟 + 鏀硅繘鐨?-Test 娴?HTTPS)
 
 **GitHub**: https://github.com/yao1987825/windows-terminal
 
 
 ---
 
-# IPv4 校验不严 + 拼写错误导致假阴性
-
-> git-proxy -Test 报 [UNREACHABLE],但其实只是 IP 写错了。
-
+# IPv4 鏍￠獙涓嶄弗 + 鎷煎啓閿欒瀵艰嚧鍋囬槾鎬?
+> git-proxy -Test 鎶?[UNREACHABLE],浣嗗叾瀹炲彧鏄?IP 鍐欓敊浜嗐€?
 ---
 
-## 一、症状
-
+## 涓€銆佺棁鐘?
 `powershell
-PS> git-proxy -h 43.198.94.828 -p 80 -s
-[INFO]  Setting socks5 proxy: socks5://43.198.94.828:80
+PS> git-proxy -h 203.0.113.999 -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://203.0.113.999:80
 [OK]    Proxy set successfully (effective immediately)
 
 PS> git-proxy -Test
 [INFO]  Testing current Git proxy connectivity...
-  Testing http.proxy = socks5://43.198.94.828:80 ...
-[WARN]    [UNREACHABLE] socks5://43.198.94.828:80
+  Testing http.proxy = socks5://203.0.113.999:80 ...
+[WARN]    [UNREACHABLE] socks5://203.0.113.999:80
 `
 
-用户困惑:明明脚本说 "set successfully",为什么 -Test 又说不可达?
+鐢ㄦ埛鍥版儜:鏄庢槑鑴氭湰璇?"set successfully",涓轰粈涔?-Test 鍙堣涓嶅彲杈?
 
 ---
 
-## 二、根因(双层 bug)
+## 浜屻€佹牴鍥?鍙屽眰 bug)
 
-### Bug 1: 拼写错误
+### Bug 1: 鎷煎啓閿欒
 
-用户输入了 43.198.94.828,但 IPv4 地址每个段最大只能 255,所以 828 是无效的。
+鐢ㄦ埛杈撳叆浜?203.0.113.999,浣?IPv4 鍦板潃姣忎釜娈垫渶澶у彧鑳?255,鎵€浠?828 鏄棤鏁堢殑銆?
+> 鐪熷疄鎰忓浘搴旇鏄?203.0.113.99(鍙兘鏄墜鎶栧鎸変簡涓€涓?8)銆?
+### Bug 2: 鑴氭湰 IP 鏍￠獙涓嶄弗
 
-> 真实意图应该是 43.198.94.82(可能是手抖多按了一个 8)。
-
-### Bug 2: 脚本 IP 校验不严
-
-git-proxy 的 IPv4 正则只校验**位数**(1-3 位数字),没校验**数值**:
+git-proxy 鐨?IPv4 姝ｅ垯鍙牎楠?*浣嶆暟**(1-3 浣嶆暟瀛?,娌℃牎楠?*鏁板€?*:
 `powershell
  = '^(\d{1,3}\.){3}\d{1,3}$'
-# 这条会通过:  43.198.94.828 (因为每段都是 1-3 位数字)
-# 这条也会通过: 999.999.999.999 (荒唐但符合正则)
+# 杩欐潯浼氶€氳繃:  203.0.113.999 (鍥犱负姣忔閮芥槸 1-3 浣嶆暟瀛?
+# 杩欐潯涔熶細閫氳繃: 999.999.999.999 (鑽掑攼浣嗙鍚堟鍒?
 `
 
-所以脚本无脑地把无效 IP 写进了 ~/.gitconfig,然后 -Test 试图连一个不存在的 IP,自然 UNREACHABLE。
-
+鎵€浠ヨ剼鏈棤鑴戝湴鎶婃棤鏁?IP 鍐欒繘浜?~/.gitconfig,鐒跺悗 -Test 璇曞浘杩炰竴涓笉瀛樺湪鐨?IP,鑷劧 UNREACHABLE銆?
 ---
 
-## 三、修复
+## 涓夈€佷慨澶?
+### Windows 鐗?(git-proxy.ps1)
 
-### Windows 版 (git-proxy.ps1)
-
-新增 IP 段数值校验:
+鏂板 IP 娈垫暟鍊兼牎楠?
 
 `powershell
 if ( -match ) {
-    # Looks like IPv4 — verify each octet is 0-255
+    # Looks like IPv4 鈥?verify each octet is 0-255
      =  -split '\.'
      = True
     foreach ( in ) {
@@ -2744,7 +2479,7 @@ if ( -match ) {
 }
 `
 
-### Debian 版 (git-proxy.sh)
+### Debian 鐗?(git-proxy.sh)
 
 `ash
 if [[ "System.Management.Automation.Internal.Host.InternalHost" =~  ]]; then
@@ -2761,60 +2496,56 @@ fi
 
 ---
 
-## 四、验证修复
-
+## 鍥涖€侀獙璇佷慨澶?
 `
-PS> git-proxy -h 43.198.94.828 -p 80 -s
-[ERROR] Invalid IPv4 address: 43.198.94.828 (each octet must be 0-255)
-                                      ✅ 现在能拦住
-
+PS> git-proxy -h 203.0.113.999 -p 80 -s
+[ERROR] Invalid IPv4 address: 203.0.113.999 (each octet must be 0-255)
+                                      鉁?鐜板湪鑳芥嫤浣?
 PS> git-proxy -h 1.1.1.256 -p 80 -s
 [ERROR] Invalid IPv4 address: 1.1.1.256 (each octet must be 0-255)
-                                      ✅ 边界值 256 拒绝
+                                      鉁?杈圭晫鍊?256 鎷掔粷
 
 PS> git-proxy -h 255.255.255.255 -p 80 -s
 [INFO]  Setting socks5 proxy: socks5://255.255.255.255:80
 [OK]    Proxy set successfully
-                                      ✅ 边界值 255 接受
+                                      鉁?杈圭晫鍊?255 鎺ュ彈
 
-PS> git-proxy -h 43.198.94.82 -p 80 -s
-[INFO]  Setting socks5 proxy: socks5://43.198.94.82:80
+PS> git-proxy -h 203.0.113.99 -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://203.0.113.99:80
 [OK]    Proxy set successfully
-                                      ✅ 正确 IP 通过
+                                      鉁?姝ｇ‘ IP 閫氳繃
 
 PS> git-proxy -h proxy.example.com -p 80 -s
 [INFO]  Setting socks5 proxy: socks5://proxy.example.com:80
 [OK]    Proxy set successfully
-                                      ✅ 域名也通过
+                                      鉁?鍩熷悕涔熼€氳繃
 `
 
 ---
 
-## 五、教训
-
-| # | 教训 |
+## 浜斻€佹暀璁?
+| # | 鏁欒 |
 |---|------|
-| 1 | 正则表达式校验**永远要二次确认语义**——位数对了不代表数值对 |
-| 2 | IPv4 校验必须拆段后**逐段  -255 校验**,不能只检查位数 |
-| 3 | 用户拼错 IP 是常事,**报错信息要明确**: "无效 IPv4 地址" 比 "连不上" 更有用 |
-| 4 | 在 set 时就校验失败,比"set 成功但 test 失败"的二段报错更清晰 |
-| 5 | 边界值测试: 、255、.256、.999 都要覆盖 |
+| 1 | 姝ｅ垯琛ㄨ揪寮忔牎楠?*姘歌繙瑕佷簩娆＄‘璁よ涔?*鈥斺€斾綅鏁板浜嗕笉浠ｈ〃鏁板€煎 |
+| 2 | IPv4 鏍￠獙蹇呴』鎷嗘鍚?*閫愭  -255 鏍￠獙**,涓嶈兘鍙鏌ヤ綅鏁?|
+| 3 | 鐢ㄦ埛鎷奸敊 IP 鏄父浜?**鎶ラ敊淇℃伅瑕佹槑纭?*: "鏃犳晥 IPv4 鍦板潃" 姣?"杩炰笉涓? 鏇存湁鐢?|
+| 4 | 鍦?set 鏃跺氨鏍￠獙澶辫触,姣?set 鎴愬姛浣?test 澶辫触"鐨勪簩娈垫姤閿欐洿娓呮櫚 |
+| 5 | 杈圭晫鍊兼祴璇? 銆?55銆?256銆?999 閮借瑕嗙洊 |
 
 ---
 
-## 六、IPv4 地址常识
+## 鍏€両Pv4 鍦板潃甯歌瘑
 
-| 类型 | 范围 | 说明 |
+| 绫诲瀷 | 鑼冨洿 | 璇存槑 |
 |------|------|------|
-| 私有 | 10.0.0.0/8 | 大型内网 |
-| 私有 | 172.16.0.0/12 | 中型内网 |
-| 私有 | 192.168.0.0/16 | 家庭/小型内网 |
-| 环回 | 127.0.0.0/8 | localhost |
-| 链路本地 | 169.254.0.0/16 | DHCP 失败时自动分配 |
-| 公网 | 其他 | 需 ISP 分配 |
+| 绉佹湁 | 10.0.0.0/8 | 澶у瀷鍐呯綉 |
+| 绉佹湁 | 172.16.0.0/12 | 涓瀷鍐呯綉 |
+| 绉佹湁 | 192.168.0.0/16 | 瀹跺涵/灏忓瀷鍐呯綉 |
+| 鐜洖 | 127.0.0.0/8 | localhost |
+| 閾捐矾鏈湴 | 169.254.0.0/16 | DHCP 澶辫触鏃惰嚜鍔ㄥ垎閰?|
+| 鍏綉 | 鍏朵粬 | 闇€ ISP 鍒嗛厤 |
 
-任何一段都必须在 **0-255** 之间。
-
+浠讳綍涓€娈甸兘蹇呴』鍦?**0-255** 涔嬮棿銆?
 ---
 
-**推送到 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/git-proxy.ps1
+**鎺ㄩ€佸埌 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/git-proxy.ps1
