@@ -1661,3 +1661,213 @@ code "C:\Users\Administrator\.ssh\config"
 ---
 
 **适用**:OpenSSH 7.7+ (Windows 10 1809 自带)
+
+
+---
+
+# Debian / Linux 版 git-proxy 部署实战
+
+> 在远端 Debian 13 服务器(10.10.10.186,用户 yao)上部署 git-proxy bash 版的完整过程 + 一个隐蔽坑。
+
+---
+
+## 一、与 Windows 版的区别
+
+| 项目 | Windows 版 | Debian 版 |
+|------|------------|-----------|
+| 脚本语言 | PowerShell | Bash |
+| 文件 | git-proxy.ps1 | git-proxy-debian.sh |
+| 安装位置 | PATH 任意目录 | /home/<user>/bin/ (用户级) 或 /usr/local/bin/ (需要 sudo) |
+| 调用方式 | git-proxy | git-proxy (要 ~/bin 在 PATH) |
+| Git 路径 | 自动 (PowerShell 知道) | **需要显式处理**(见下文踩坑) |
+
+---
+
+## 二、部署步骤
+
+### 1. 上传脚本到服务器
+
+`powershell
+# Windows 端执行
+scp D:\Windows_Terminal\git-proxy-debian.sh yao@10.10.10.186:/tmp/git-proxy.sh
+`
+
+### 2. 安装到用户目录(无需 sudo)
+
+`ash
+# 服务器端
+mkdir -p ~/bin
+mv /tmp/git-proxy.sh ~/bin/git-proxy
+chmod +x ~/bin/git-proxy
+`
+
+### 3. 配置 PATH
+
+SSH non-interactive shell 默认**不**读取 ~/.bashrc,所以最好同时改两个文件:
+
+`ash
+# 交互式 shell 用 (SSH 登录后)
+echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc
+
+# 非交互式 shell 用 (SSH 直接执行命令)
+echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.profile
+`
+
+### 4. 测试
+
+`ash
+# 登录后
+git-proxy --help
+
+# SSH 一行执行
+ssh yao@10.10.10.186 "git-proxy --help | head -3"
+`
+
+---
+
+## 三、隐蔽踩坑:Git not found 错误
+
+### 现象
+
+`ash
+yao@debian:~$ git-proxy -t
+[ERROR] Git not found. Please install: sudo apt install git
+`
+
+但其实 git 明明装在 /usr/bin/git:
+
+`ash
+yao@debian:~$ git --version
+git version 2.47.3
+`
+
+### 根因分析
+
+**SSH non-interactive shell 的 PATH 不包含 /usr/bin**!
+
+排查过程:
+
+`ash
+# 1. SSH 直接执行命令(非交互 shell)
+yao@debian:~$ ssh yao@10.10.10.186 "echo \"
+/usr/local/bin:/usr/bin   # 这看起来是 OK 的
+
+# 2. 但用 sudo 时(会重置 PATH)
+yao@debian:~$ ssh yao@10.10.10.186 "sudo env"
+# secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# (默认 PATH 反而是完整的)
+
+# 3. 真正诡异的情况:某些容器/minimal Debian 安装
+# 用户家目录下 .bashrc / .profile 没被读取
+# 或者 PATH 被 systemd / PAM 重置成空 / 最小值
+`
+
+### 修复方案(已合入 git-proxy-debian.sh)
+
+脚本内部做了三件事,不再依赖外部 PATH:
+
+`ash
+# 1. 强制 export 标准 PATH
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\"
+
+# 2. 按常见路径硬编码查找 git
+GIT_CMD=""
+for p in /usr/bin/git /usr/local/bin/git /bin/git; do
+    if [[ -x "\" ]]; then
+        GIT_CMD="\"
+        break
+    fi
+done
+
+# 3. 最后回退到 command -v
+if [[ -z "\" ]]; then
+    GIT_CMD=\
+fi
+
+# 4. 所有 git 调用都改成 \
+\ config --global http.proxy "..."
+`
+
+### 验证脚本自给自足
+
+`ash
+# 模拟最小 PATH 环境
+yao@debian:~$ env -i HOME=/home/yao PATH=/tmp /home/yao/bin/git-proxy --help
+Git Proxy Manager (HTTP / HTTPS / SOCKS5) - Debian/Linux
+...
+# 仍然正常工作!说明脚本不依赖外部 PATH
+`
+
+---
+
+## 四、完整的 Debian 安装脚本(可直接复制)
+
+`ash
+#!/bin/bash
+# install-git-proxy.sh - 一键安装脚本
+set -e
+
+echo "=== 1. 准备目录 ==="
+mkdir -p ~/bin
+
+echo "=== 2. 复制脚本(假设你已 scp 到 /tmp) ==="
+if [[ -f /tmp/git-proxy-debian.sh ]]; then
+    mv /tmp/git-proxy-debian.sh ~/bin/git-proxy
+elif [[ -f ~/git-proxy-debian.sh ]]; then
+    cp ~/git-proxy-debian.sh ~/bin/git-proxy
+else
+    echo "请先上传 git-proxy-debian.sh 到 /tmp/ 或 ~/" >&2
+    exit 1
+fi
+
+echo "=== 3. 设置权限 ==="
+chmod +x ~/bin/git-proxy
+
+echo "=== 4. 配置 PATH ==="
+grep -q 'HOME/bin' ~/.bashrc 2>/dev/null || echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.bashrc
+grep -q 'HOME/bin' ~/.profile 2>/dev/null || echo 'export PATH=\C:\Users\Administrator/bin:\' >> ~/.profile
+
+echo "=== 5. 测试 ==="
+~/bin/git-proxy --help | head -3
+
+echo ""
+echo "=== 安装完成 ==="
+echo "现在可以用: git-proxy -h <IP> -p <PORT> -s"
+`
+
+---
+
+## 五、Debug 速查
+
+`ash
+# 1. PATH 到底有什么
+echo \
+
+# 2. git 在哪
+ls -la /usr/bin/git /usr/local/bin/git /bin/git 2>&1
+
+# 3. git-proxy 解析后的 GIT_CMD 是啥
+bash -x ~/bin/git-proxy --help 2>&1 | grep -E "GIT_CMD=|command -v"
+
+# 4. 强制用绝对路径跑
+/usr/bin/git --version
+
+# 5. 临时强制设置 PATH 测试
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin git-proxy -t
+`
+
+---
+
+## 六、教训
+
+| # | 教训 |
+|---|------|
+| 1 | **永远不要假设 PATH 包含 /usr/bin**——尤其在脚本中调用其他命令时 |
+| 2 | SSH non-interactive shell 的 PATH 可能**完全不读取** .bashrc/.profile |
+| 3 | sudo 会**重置 PATH** 到 secure_path,这是另一层复杂性 |
+| 4 | 跨平台脚本要按常见位置**硬编码查找**关键命令,或显式 export PATH |
+| 5 | 用 ash -x 调试脚本可以看清楚每一步实际执行了什么 |
+
+---
+
+**适用**:Debian 11+ / Ubuntu 20.04+ / 其他使用 systemd 的现代 Linux 发行版
