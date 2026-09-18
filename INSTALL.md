@@ -2357,3 +2357,172 @@ Remove-Item "test.html"
 ---
 
 **适用**:Windows Terminal + PowerShell 5.1/7 + Windows 10/11
+
+
+---
+
+# git-proxy 坑：-T 神秘失效
+
+> 明明写了 -T http 但 git-proxy 不执行 set,而是跑 test——PowerShell 参数别名大小写不敏感的坑。
+
+---
+
+## 一、症状
+
+`powershell
+PS> git-proxy -h 18.163.99.118 -p 80 -T http -s
+[INFO]  Testing current Git proxy connectivity...
+
+[WARN]  No proxy currently set. Use -h <IP> -p <PORT> -s to set one.
+`
+
+本意是「设置 HTTP 代理」，但脚本实际执行的是「测试当前代理」，所以报 "No proxy currently set"。
+
+---
+
+## 二、根本原因
+
+**PowerShell 的参数别名是大小写不敏感的**。
+
+脚本里同时定义了:
+`powershell
+[Alias("t")][switch],           # -t → 测试
+[ValidateSet(...)][string] # -T 也想当别名,但会跟 -t 冲突
+`
+
+PowerShell 解析时:
+- -T → 跟 -t 匹配(忽略大小写)→ 触发 Test 模式
+- http → 被当成 -p 后的位置参数? → 然后就报 No proxy
+- -s → Set 标志 → 但因为 Test 已经先匹配,被忽略
+
+---
+
+## 三、临时方案:用全名
+
+`powershell
+# 用 -ProxyType 全名,不用 -T 简写
+git-proxy -h 18.163.99.118 -p 80 -ProxyType http -s
+#                                  ^^^^^^^^
+#                                  不要用 -T
+`
+
+这是当前 v1.x 版本唯一能用的方式。
+
+---
+
+## 四、永久修复(已合入 v2.0)
+
+把 -t 改名,释放 -T 给 -ProxyType:
+
+`powershell
+# 旧:
+[Alias("t")][switch],
+
+# 新:
+[Alias("Test")][switch],
+[Alias("T")][ValidateSet("http","https","socks5")][string] = "socks5",
+`
+
+### 迁移映射
+
+| 旧命令 | 新命令 |
+|--------|--------|
+| git-proxy -t | git-proxy -Test |
+| git-proxy -T http -s | git-proxy -T http -s (现在能用了) |
+
+### 验证 v2.0
+
+`powershell
+PS> git-proxy -h 18.163.99.118 -p 80 -T http -s
+[INFO]  Setting http proxy: http://18.163.99.118:80
+[OK]    Proxy set successfully (effective immediately)
+
+  Protocol    = http
+  http.proxy  = http://18.163.99.118:80
+  https.proxy = http://18.163.99.118:80
+
+PS> git-proxy -Test
+[INFO]  Testing current Git proxy connectivity...
+[OK]    [REACHABLE] http://18.163.99.118:80
+[OK]    [HTTP OK]   github.com reachable via proxy
+`
+
+---
+
+## 五、PowerShell 别名规则详解
+
+`powershell
+# PowerShell 别名 = 完全不区分大小写
+[Alias("foo")]
+[Alias("FOO")]
+[Alias("Foo")]
+# 这三个完全一样,后定义的覆盖前面的
+
+# 命令行参数也大小写不敏感
+Get-Help -full
+get-help -FULL
+Get-help -Full
+# 全部等价
+
+# 所以:
+# -h 和 -H 等价
+# -ProxyType 和 -proxytype 等价
+# -T 和 -t 等价(但只能对应一个 Alias)
+`
+
+---
+
+## 六、踩坑教训
+
+| # | 教训 |
+|---|------|
+| 1 | PowerShell 参数别名**永远不要冲突**(即使只是大小写差异) |
+| 2 | 想保留两个相近参数的简写别名,**必须不同长度**(-t vs -T 不行,-t vs -Test 可以) |
+| 3 | 临时解决:用全名 (-ProxyType) |
+| 4 | 写完脚本后,**手工测试每种参数组合**,别只看语法通过 |
+| 5 | 用 Get-Help script.ps1 -Full 可以看到所有别名,验证无冲突 |
+
+---
+
+## 七、相关代码差异
+
+### v1.x (有 bug)
+
+`powershell
+param(
+    [Alias("h")][string],
+    [Alias("p")][int],
+    [ValidateSet("http","https","socks5")][string] = "socks5",  # ← 没别名
+    [Alias("t")][switch],                                              # ← -t 占用
+    [Alias("s")][switch],
+    [Alias("u")][switch],
+    [Alias("c")][switch],
+)
+# 用户输入 -T http -s
+# -T 被解析为 -t → 跑测试
+# http 被忽略
+# -s 被忽略
+`
+
+### v2.0 (已修复)
+
+`powershell
+param(
+    [Alias("h")][string],
+    [Alias("p")][int],
+    [Alias("T")][ValidateSet("http","https","socks5")][string] = "socks5",  # ← -T 可用
+    [Alias("Test")][switch],                                                 # ← -Test,不再用 -t
+    [Alias("s")][switch],
+    [Alias("u")][switch],
+    [Alias("c")][switch],
+)
+# 用户输入 -T http -s
+# -T 解析为 ProxyType
+# http 解析为 ProxyType 的值
+# -s 触发 Set
+# 完美工作 ✅
+`
+
+---
+
+**推送到 GitHub**: https://github.com/yao1987825/git-proxy/blob/main/windows/git-proxy.ps1
