@@ -2673,3 +2673,148 @@ git -c https.proxy= clone https://github.com/octocat/Hello-World.git /tmp/test
 **相关代码**: git-proxy.ps1 v2.1(已加 -HttpOnly 参数 + 改进的 -Test 测 HTTPS)
 
 **GitHub**: https://github.com/yao1987825/windows-terminal
+
+
+---
+
+# IPv4 校验不严 + 拼写错误导致假阴性
+
+> git-proxy -Test 报 [UNREACHABLE],但其实只是 IP 写错了。
+
+---
+
+## 一、症状
+
+`powershell
+PS> git-proxy -h 43.198.94.828 -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://43.198.94.828:80
+[OK]    Proxy set successfully (effective immediately)
+
+PS> git-proxy -Test
+[INFO]  Testing current Git proxy connectivity...
+  Testing http.proxy = socks5://43.198.94.828:80 ...
+[WARN]    [UNREACHABLE] socks5://43.198.94.828:80
+`
+
+用户困惑:明明脚本说 "set successfully",为什么 -Test 又说不可达?
+
+---
+
+## 二、根因(双层 bug)
+
+### Bug 1: 拼写错误
+
+用户输入了 43.198.94.828,但 IPv4 地址每个段最大只能 255,所以 828 是无效的。
+
+> 真实意图应该是 43.198.94.82(可能是手抖多按了一个 8)。
+
+### Bug 2: 脚本 IP 校验不严
+
+git-proxy 的 IPv4 正则只校验**位数**(1-3 位数字),没校验**数值**:
+`powershell
+ = '^(\d{1,3}\.){3}\d{1,3}$'
+# 这条会通过:  43.198.94.828 (因为每段都是 1-3 位数字)
+# 这条也会通过: 999.999.999.999 (荒唐但符合正则)
+`
+
+所以脚本无脑地把无效 IP 写进了 ~/.gitconfig,然后 -Test 试图连一个不存在的 IP,自然 UNREACHABLE。
+
+---
+
+## 三、修复
+
+### Windows 版 (git-proxy.ps1)
+
+新增 IP 段数值校验:
+
+`powershell
+if ( -match ) {
+    # Looks like IPv4 — verify each octet is 0-255
+     =  -split '\.'
+     = True
+    foreach ( in ) {
+         = 0
+        if (-not [int]::TryParse(, [ref])) {  = False; break }
+        if ( -lt 0 -or  -gt 255) {  = False; break }
+    }
+    if (-not ) {
+        Write-Err "Invalid IPv4 address:  (each octet must be 0-255)"
+        exit 1
+    }
+}
+`
+
+### Debian 版 (git-proxy.sh)
+
+`ash
+if [[ "System.Management.Automation.Internal.Host.InternalHost" =~  ]]; then
+    local IFS='.'
+    read -ra octets <<< "System.Management.Automation.Internal.Host.InternalHost"
+    for octet in ""; do
+        if (( octet < 0 || octet > 255 )); then
+            err "Invalid IPv4 address: System.Management.Automation.Internal.Host.InternalHost (each octet must be 0-255)"
+            exit 1
+        fi
+    done
+fi
+`
+
+---
+
+## 四、验证修复
+
+`
+PS> git-proxy -h 43.198.94.828 -p 80 -s
+[ERROR] Invalid IPv4 address: 43.198.94.828 (each octet must be 0-255)
+                                      ✅ 现在能拦住
+
+PS> git-proxy -h 1.1.1.256 -p 80 -s
+[ERROR] Invalid IPv4 address: 1.1.1.256 (each octet must be 0-255)
+                                      ✅ 边界值 256 拒绝
+
+PS> git-proxy -h 255.255.255.255 -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://255.255.255.255:80
+[OK]    Proxy set successfully
+                                      ✅ 边界值 255 接受
+
+PS> git-proxy -h 43.198.94.82 -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://43.198.94.82:80
+[OK]    Proxy set successfully
+                                      ✅ 正确 IP 通过
+
+PS> git-proxy -h proxy.example.com -p 80 -s
+[INFO]  Setting socks5 proxy: socks5://proxy.example.com:80
+[OK]    Proxy set successfully
+                                      ✅ 域名也通过
+`
+
+---
+
+## 五、教训
+
+| # | 教训 |
+|---|------|
+| 1 | 正则表达式校验**永远要二次确认语义**——位数对了不代表数值对 |
+| 2 | IPv4 校验必须拆段后**逐段  -255 校验**,不能只检查位数 |
+| 3 | 用户拼错 IP 是常事,**报错信息要明确**: "无效 IPv4 地址" 比 "连不上" 更有用 |
+| 4 | 在 set 时就校验失败,比"set 成功但 test 失败"的二段报错更清晰 |
+| 5 | 边界值测试: 、255、.256、.999 都要覆盖 |
+
+---
+
+## 六、IPv4 地址常识
+
+| 类型 | 范围 | 说明 |
+|------|------|------|
+| 私有 | 10.0.0.0/8 | 大型内网 |
+| 私有 | 172.16.0.0/12 | 中型内网 |
+| 私有 | 192.168.0.0/16 | 家庭/小型内网 |
+| 环回 | 127.0.0.0/8 | localhost |
+| 链路本地 | 169.254.0.0/16 | DHCP 失败时自动分配 |
+| 公网 | 其他 | 需 ISP 分配 |
+
+任何一段都必须在 **0-255** 之间。
+
+---
+
+**推送到 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/git-proxy.ps1
