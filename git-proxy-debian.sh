@@ -84,11 +84,28 @@ HELP
 }
 
 # ========== Check Git ==========
+# SSH non-interactive shell PATH may not include /usr/bin
+# Ensure git is found regardless of how the script was invoked
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
+GIT_CMD=""
 test_git_installed() {
-    if ! command -v git >/dev/null 2>&1; then
-        err "Git not found. Please install: sudo apt install git"
-        exit 1
+    # Try common locations first (fastest, most reliable)
+    for p in /usr/bin/git /usr/local/bin/git /bin/git; do
+        if [[ -x "$p" ]]; then
+            GIT_CMD="$p"
+            return 0
+        fi
+    done
+
+    # Fall back to command -v
+    GIT_CMD=$(command -v git 2>/dev/null)
+    if [[ -n "$GIT_CMD" && -x "$GIT_CMD" ]]; then
+        return 0
     fi
+
+    err "Git not found. Please install: sudo apt install git"
+    exit 1
 }
 
 # ========== Test Current Proxy ==========
@@ -96,8 +113,8 @@ test_current_proxy() {
     info "Testing current Git proxy connectivity..."
     echo ""
 
-    local http_proxy_url=$(git config --global --get http.proxy 2>/dev/null || echo "")
-    local https_proxy_url=$(git config --global --get https.proxy 2>/dev/null || echo "")
+    local http_proxy_url=$($GIT_CMD config --global --get http.proxy 2>/dev/null || echo "")
+    local https_proxy_url=$($GIT_CMD config --global --get https.proxy 2>/dev/null || echo "")
 
     if [[ -z "$http_proxy_url" && -z "$https_proxy_url" ]]; then
         warn "No proxy currently set. Use -h <IP> -p <PORT> -s to set one."
@@ -180,8 +197,8 @@ set_proxy() {
 
     info "Setting $type proxy: $proxy_url"
 
-    git config --global http.proxy  "$proxy_url"
-    git config --global https.proxy "$proxy_url"
+    $GIT_CMD config --global http.proxy  "$proxy_url"
+    $GIT_CMD config --global https.proxy "$proxy_url"
 
     ok "Proxy set successfully (effective immediately)"
     echo ""
@@ -193,8 +210,8 @@ set_proxy() {
 # ========== Unset Proxy ==========
 unset_proxy() {
     info "Unsetting Git proxy..."
-    git config --global --unset http.proxy  2>/dev/null || true
-    git config --global --unset https.proxy 2>/dev/null || true
+    $GIT_CMD config --global --unset http.proxy  2>/dev/null || true
+    $GIT_CMD config --global --unset https.proxy 2>/dev/null || true
     ok "Proxy unset successfully"
 }
 
@@ -202,11 +219,11 @@ unset_proxy() {
 show_status() {
     info "Current Git proxy configuration:"
     echo ""
-    echo -e "  ${GRAY}http.proxy  = $(git config --global --get http.proxy)${NC}"
-    echo -e "  ${GRAY}https.proxy = $(git config --global --get https.proxy)${NC}"
+    echo -e "  ${GRAY}http.proxy  = $($GIT_CMD config --global --get http.proxy)${NC}"
+    echo -e "  ${GRAY}https.proxy = $($GIT_CMD config --global --get https.proxy)${NC}"
     echo ""
 
-    local http_proxy_url=$(git config --global --get http.proxy 2>/dev/null || echo "")
+    local http_proxy_url=$($GIT_CMD config --global --get http.proxy 2>/dev/null || echo "")
     if [[ -n "$http_proxy_url" ]]; then
         info "Tip: Run 'git-proxy -t' to test connectivity"
     else
