@@ -1,25 +1,30 @@
 # git-proxy.ps1 - Git Proxy Manager (HTTP / HTTPS / SOCKS5)
 #
 # Usage:
-#   .\git-proxy.ps1 -h <IP> -p <PORT> -ProxyType <TYPE> -s      Set proxy (apply immediately)
-#   .\git-proxy.ps1 -t                                    Test current proxy connectivity
-#   .\git-proxy.ps1 -u                                    Unset proxy
-#   .\git-proxy.ps1 -c                                    Show current proxy status
-#   .\git-proxy.ps1 -Help                                 Show help
+#   .\git-proxy.ps1 -h <IP> -p <PORT> -ProxyType <TYPE> -s   Set proxy (apply immediately)
+#   .\git-proxy.ps1 -T <TYPE> -s                              Quick set (Type + Set together)
+#   .\git-proxy.ps1 -Test                                    Test current proxy connectivity
+#   .\git-proxy.ps1 -u                                       Unset proxy
+#   .\git-proxy.ps1 -c                                       Show current proxy status
+#   .\git-proxy.ps1 -Help                                    Show help
 #
 # Examples:
 #   .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -s                  # Default: SOCKS5
 #   .\git-proxy.ps1 -h 127.0.0.1 -p 1080 -ProxyType socks5 -s
 #   .\git-proxy.ps1 -h 127.0.0.1 -p 7890 -ProxyType http -s          # HTTP proxy
 #   .\git-proxy.ps1 -h proxy.example.com -p 8080 -ProxyType https -s # HTTPS proxy
-#   .\git-proxy.ps1 -t                                       # Test current proxy
+#   .\git-proxy.ps1 -Test                                    # Test current proxy
 #   .\git-proxy.ps1 -u                                       # Unset proxy
+#
+# Note: -T cannot be aliased to -ProxyType because PowerShell aliases
+# are case-insensitive and -t was already taken for -Test. Use full name
+# -ProxyType, or use the new -Test (long form) for testing.
 
 param(
     [Alias("h")][string]$ProxyHost,
     [Alias("p")][int]$ProxyPort,
-    [ValidateSet("http","https","socks5")][string]$ProxyType = "socks5",
-    [Alias("t")][switch]$Test,
+    [Alias("T")][ValidateSet("http","https","socks5")][string]$ProxyType = "socks5",
+    [Alias("Test")][switch]$TestProxy,
     [Alias("s")][switch]$Set,
     [Alias("u")][switch]$Unset,
     [Alias("c")][switch]$Check,
@@ -49,7 +54,7 @@ Parameters:
     -p, -ProxyPort     Proxy port (e.g. 1080)
     -T, -ProxyType     Proxy protocol: http | https | socks5 (default: socks5)
                        Note: Only -ProxyType (full name) works, -T is reserved for -Test
-    -t, -Test          Test current proxy connectivity (no other args needed)
+    -Test               Test current proxy connectivity (no other args needed)
     -s, -Set           Apply proxy settings to Git
     -u, -Unset         Unset Git proxy
     -c, -Check         Show current proxy status
@@ -242,7 +247,7 @@ function Show-GitProxyStatus {
 
     $httpProxy  = git config --global --get http.proxy
     if ($httpProxy) {
-        Write-Info "Tip: Run 'git-proxy -t' to test connectivity"
+        Write-Info "Tip: Run 'git-proxy -Test' to test connectivity"
     }
     else {
         Write-Warn "No proxy currently set"
@@ -253,12 +258,12 @@ function Show-GitProxyStatus {
 Test-GitInstalled
 
 # Show help if no args or -Help
-if ($Help -or (-not $ProxyHost -and -not $Test -and -not $Set -and -not $Unset -and -not $Check)) {
+if ($Help -or (-not $ProxyHost -and -not $TestProxy -and -not $Set -and -not $Unset -and -not $Check)) {
     Show-Help
     exit 0
 }
 
-if ($Test) {
+if ($TestProxy) {
     Test-CurrentProxy
 }
 elseif ($Set) {
