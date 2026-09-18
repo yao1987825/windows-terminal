@@ -2019,3 +2019,341 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\"
 **相关文件**: ix-bashrc.sh(一键修复工具)
 
 **推送到 GitHub**: https://github.com/yao1987825/windows-terminal/blob/main/INSTALL.md
+
+
+---
+
+# wget / curl 在 Windows Terminal 的正确用法
+
+> `wget` 和 `curl` 在 PowerShell 里被劫持了 — 别再用错方式下载文件了。
+
+---
+
+## 一、问题现象
+
+```powershell
+PS C:\Users\Administrator> wget --help
+# 报错: 不能识别 --help
+# 或者显示 Invoke-WebRequest 的帮助
+
+PS C:\Users\Administrator> wget "https://example.com/file.zip" -O "file.zip"
+# 报错: A parameter cannot be found that accepts argument '-O'
+```
+
+### 原因
+
+Windows PowerShell 把 `wget` 和 `curl` 都**别名指向** `Invoke-WebRequest`:
+
+```powershell
+PS> Get-Command wget
+CommandType  Name    Definition
+-----------  ----    ----------
+Alias        wget    -> Invoke-WebRequest
+
+PS> Get-Command curl
+CommandType  Name    Definition
+-----------  ----    ----------
+Alias        curl    -> Invoke-WebRequest
+```
+
+`Invoke-WebRequest` 是 PowerShell 的下载命令,语法跟 GNU wget/curl **完全不同**。
+
+---
+
+## 二、三种解决方案
+
+### 方案 1: 用真实程序名(最简单)
+
+GNU wget 和 curl.exe 都是独立 exe,Windows Terminal 都能用。
+
+```powershell
+# 真实 wget (已通过 Chocolatey 安装)
+wget.exe "URL" -O "save_path"
+
+# 真实 curl (Windows 10 1803+ 自带)
+curl.exe -L -o "save_path" "URL"
+```
+
+**关键**:**必须加 `.exe` 后缀**,否则会被 PowerShell 别名拦截。
+
+#### 验证真实程序位置
+
+```powershell
+where.exe wget
+# C:\ProgramData\chocolatey\bin\wget.exe
+
+where.exe curl
+# C:\Windows\system32\curl.exe
+```
+
+---
+
+### 方案 2: 永久移除 PowerShell 别名(推荐)
+
+加到 PowerShell profile (`$PROFILE`):
+
+```powershell
+notepad $PROFILE
+```
+
+添加:
+
+```powershell
+# 让 wget/curl 默认就是真实命令
+Remove-Item Alias:wget -Force -ErrorAction SilentlyContinue
+Remove-Item Alias:curl -Force -ErrorAction SilentlyContinue
+```
+
+新开终端后,直接 `wget URL -O file` 就能用。
+
+---
+
+### 方案 3: 用 PowerShell 原生命令
+
+如果不下载外部工具,直接用 `Invoke-WebRequest`:
+
+```powershell
+# 下载到文件
+Invoke-WebRequest -Uri "https://example.com/file.zip" -OutFile "file.zip"
+
+# 简写(aliased to iwr)
+iwr "URL" -OutFile "file.zip"
+
+# 显示进度
+Invoke-WebRequest -Uri "URL" -OutFile "file.zip" -Verbose
+
+# POST 请求
+Invoke-RestMethod -Uri "https://api.example.com" -Method Post `
+    -Body '{"key":"value"}' `
+    -ContentType "application/json"
+```
+
+---
+
+## 三、实战命令大全
+
+### 1. 下载单文件
+
+```powershell
+# wget 风格
+wget.exe -c "https://example.com/large-file.zip" -O "D:\Downloads\file.zip"
+
+# curl 风格
+curl.exe -L -o "D:\Downloads\file.zip" "https://example.com/large-file.zip"
+```
+
+参数:
+| 工具 | 参数 | 作用 |
+|------|------|------|
+| wget | `-c` | 断点续传 |
+| wget | `-tries=N` | 重试 N 次 |
+| wget | `-timeout=S` | 超时秒数 |
+| curl | `-L` | 跟随重定向 |
+| curl | `-C -` | 断点续传 |
+| curl | `--retry N` | 重试 |
+
+### 2. 通过 GitHub 代理下载 Release 文件
+
+```powershell
+# URL 模板
+# https://gh-proxy.org/https://github.com/USER/REPO/releases/download/TAG/FILE
+# 或 https://v4.gh-proxy.org/...
+
+# 下载 N1 OpenWrt 固件 (279 MB)
+wget.exe -c --tries=10 --timeout=60 `
+    "https://v4.gh-proxy.org/https://github.com/yao1987825/Cloud-N1-OpenWrt/releases/download/20260918/openwrt_s905d_n1_R26.03.25_k6.12.65-flippy-94+.img.gz" `
+    -O "D:\Downloads\openwrt_n1.img.gz"
+```
+
+**URL 必须用引号包**!文件名里有 `+`、`.` 等字符,PowerShell 不加引号会解析错。
+
+### 3. 下载多个文件
+
+```powershell
+# 准备 URL 列表
+@(
+    "https://example.com/file1.zip",
+    "https://example.com/file2.zip",
+    "https://example.com/file3.zip"
+) | ForEach-Object {
+    $name = Split-Path $_ -Leaf
+    curl.exe -L -o "D:\Downloads\$name" $_
+}
+```
+
+### 4. 断点续传大文件
+
+```powershell
+# wget 方式 (-c 参数)
+wget.exe -c "https://example.com/huge-file.iso" -O "D:\Downloads\file.iso"
+# Ctrl+C 中断后,再次执行同一条命令可接着下
+
+# curl 方式
+curl.exe -C - -o "D:\Downloads\file.iso" "https://example.com/huge-file.iso"
+```
+
+### 5. 只看 HTTP 头
+
+```powershell
+# wget
+wget.exe --spider "URL"
+
+# curl
+curl.exe -I -L "URL"
+# 输出:
+# HTTP/1.1 200 OK
+# Content-Type: application/octet-stream
+# Content-Length: 279415162
+```
+
+### 6. POST 数据到 API
+
+```powershell
+# wget
+wget.exe --post-data="key=value&foo=bar" "https://api.example.com/endpoint"
+
+# wget + JSON
+wget.exe --header="Content-Type: application/json" `
+    --post-data='{"key":"value"}' `
+    "https://api.example.com/endpoint"
+
+# curl
+curl.exe -X POST -d '{"key":"value"}' -H "Content-Type: application/json" "URL"
+
+# curl + 文件 @-prefix
+curl.exe -X POST -d @data.json -H "Content-Type: application/json" "URL"
+```
+
+### 7. 下载并显示进度条
+
+```powershell
+# wget 默认就有进度条
+wget.exe "URL" -O "file.zip"
+
+# curl 加 # 符号显示进度条
+curl.exe -# -o "file.zip" "URL"
+```
+
+---
+
+## 四、命令对照表
+
+| 功能 | GNU wget | GNU curl | PowerShell |
+|------|----------|----------|------------|
+| 下载文件 | `wget URL -O file` | `curl URL -o file` | `iwr URL -OutFile file` |
+| 断点续传 | `wget -c URL` | `curl -C - URL` | 无原生 |
+| 仅看头 | `wget --spider URL` | `curl -I URL` | `iwr -Method Head URL` |
+| POST | `wget --post-data=...` | `curl -X POST -d ...` | `irm -Method Post -Body ...` |
+| 跟随重定向 | 默认 | `curl -L` | 默认 |
+| 用户认证 | `wget --user=... --password=...` | `curl -u user:pass` | `iwr -Credential ...` |
+| 限速 | `wget --limit-rate=200k` | `curl --limit-rate 200k` | 无 |
+| 静默 | `wget -q` | `curl -s` | `iwr -Quiet` |
+
+---
+
+## 五、常见错误
+
+### 错误 1: PowerShell 别名拦截
+
+```
+wget: A parameter cannot be found that accepts argument '-O'
+```
+
+**解决**:用 `wget.exe` 或在 `$PROFILE` 移除别名。
+
+### 错误 2: URL 引号问题
+
+```
+wget: URL not found
+```
+
+**解决**:URL 必须用双引号,尤其包含 `+`、`.`、特殊字符时:
+```powershell
+wget.exe "https://example.com/file+v1.2.zip" -O "file.zip"
+#                                  ^         ^
+#                                  必须用引号!
+```
+
+### 错误 3: 文件路径权限
+
+```
+wget: Permission denied
+```
+
+**解决**:输出路径要有写权限。不要下到 `C:\Program Files\`、`C:\Windows\`。
+下到 `D:\Downloads\` 或 `%USERPROFILE%\Downloads\`。
+
+### 错误 4: 下载到 99% 失败
+
+```
+wget: Connection reset by peer
+```
+
+**解决**:用 `-c` 断点续传重试:
+```powershell
+wget.exe -c --tries=20 --timeout=120 "URL" -O "file"
+```
+
+### 错误 5: 下载到一半发现想下错文件
+
+`Ctrl + C` 中断,`rm` 删掉半成品,从头来。
+
+---
+
+## 六、一键配置(写入 $PROFILE)
+
+```powershell
+# 编辑 profile
+notepad $PROFILE
+```
+
+加入:
+
+```powershell
+# === wget/curl 修复 ===
+Remove-Item Alias:wget -Force -ErrorAction SilentlyContinue
+Remove-Item Alias:curl -Force -ErrorAction SilentlyContinue
+
+# === Git 代理快捷 ===
+function px-proxy "shae00O6_socks5" { git-proxy @args }
+Set-Alias px "function:px-proxy" 2>$null  # 简化调用
+```
+
+新开终端后:
+- `wget URL -O file` 直接生效
+- `curl URL -o file` 直接生效
+- `px -h 127.0.0.1 -p 1080 -s` 一键设置 git 代理
+
+---
+
+## 七、验证方法
+
+```powershell
+# 1. 验证 wget 真实能用
+wget.exe --version
+# 应该显示 GNU wget 1.20 之类
+
+# 2. 验证 PowerShell 别名状态
+Get-Command wget
+# 如果显示 "Alias -> wget.exe" 说明已修复
+# 如果显示 "Alias -> Invoke-WebRequest" 说明还是被劫持
+
+# 3. 真实测试
+wget.exe "https://www.google.com" -O "test.html"
+# 应该下载 google 首页
+
+Remove-Item "test.html"
+```
+
+---
+
+## 八、参考
+
+- [GNU wget 官方文档](https://www.gnu.org/software/wget/manual/)
+- [curl 官方文档](https://curl.se/docs/)
+- [PowerShell Invoke-WebRequest](https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/invoke-webrequest)
+- [GitHub 代理 gh-proxy.org](https://gh-proxy.org)
+
+---
+
+**适用**:Windows Terminal + PowerShell 5.1/7 + Windows 10/11
